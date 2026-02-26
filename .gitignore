@@ -47,6 +47,7 @@ htmlcov/
 
 # Project docs (local planning materials)
 docs (have to gitignore this!)/
+CLAUDE.md
 
 # Worktrees
 .worktrees/
