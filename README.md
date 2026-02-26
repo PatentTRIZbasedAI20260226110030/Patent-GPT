@@ -1,8 +1,8 @@
-# Patent-GPT
+# TRIZ-Based Inventive AI Engine Service
 
 **TRIZ-powered AI Engine Service for Inventive Idea Discovery**
 
-> Enter a keyword or everyday problem, and Patent-GPT generates inventive ideas using TRIZ's 40 Inventive Principles, searches existing patents to evaluate novelty, autonomously redesigns to secure patent value, and outputs a structured patent draft.
+> Enter a keyword or everyday problem, and the service generates inventive ideas using TRIZ's 40 Inventive Principles, searches existing patents to evaluate novelty, autonomously redesigns to secure patent value, and outputs a structured patent draft.
 
 [한국어 README](README.ko.md)
 
@@ -10,7 +10,7 @@
 
 ## Why This Service?
 
-People encounter small inconveniences in daily life all the time, but turning those frustrations into concrete solutions — let alone patentable inventions — is surprisingly difficult. Existing AI patent services (GenIP, PatentFT, etc.) focus on **writing patent specifications** after you already have an idea. Patent-GPT starts earlier: it helps you **discover** the idea itself using TRIZ methodology, then carries it all the way through novelty evaluation and patent drafting.
+People encounter small inconveniences in daily life all the time, but turning those frustrations into concrete solutions — let alone patentable inventions — is surprisingly difficult. Existing AI patent services (GenIP, PatentFT, etc.) focus on **writing patent specifications** after you already have an idea. This service starts earlier: it helps you **discover** the idea itself using TRIZ methodology, then carries it all the way through novelty evaluation and patent drafting.
 
 ---
 

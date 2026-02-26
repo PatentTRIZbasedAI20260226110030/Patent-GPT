@@ -1,14 +1,20 @@
 ---
-description: Python, FastAPI, LangChain/LangGraph 코딩 가이드라인
+description: 보조 Python/LLM 코딩 가이드라인 (기획서/코어 룰 하위)
 globs: "**/*.py"
 alwaysApply: false
 ---
 
-# Python & LLM Workflow Standards
+# Secondary Python & LLM Workflow Standards
+
+- 이 파일은 보조 규칙이다.
+- 우선순위는 다음 순서를 따른다.
+  1) `docs (have to gitignore this!)/기획서 프로젝트.pdf`
+  2) `.cursor/rules/patent-gpt-core-standards.mdc`
+  3) 이 파일
 
 ## Language & Tooling
 
-- Python 3.11+, pip + pyproject.toml for dependency management.
+- Python 3.10+, `pyproject.toml` 기반 의존성 관리.
 - Ruff for linting and formatting (replaces black, isort, flake8).
 - pytest + pytest-asyncio for testing.
 
