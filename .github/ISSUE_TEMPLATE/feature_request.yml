@@ -1,0 +1,65 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the feature you'd like to see in Patent-GPT.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: What problem does this solve? Why is it needed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How should this feature work?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the system does this relate to?
+      options:
+        - TRIZ Idea Generator
+        - Patent Searcher (RAG)
+        - Reasoning Agent (LangGraph)
+        - Draft Generator
+        - FastAPI / API Layer
+        - KIPRISplus Client
+        - Infrastructure / CI
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: Target Milestone
+      description: Which milestone should this belong to?
+      options:
+        - v0.2.0 · Core Services
+        - v0.3.0 · Agent & Output
+        - v0.4.0 · Ship
+        - Backlog (unplanned)
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative approaches you've thought about?
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Mockups, references, related issues, etc.

@@ -1,0 +1,70 @@
+name: Task
+description: Development task for sprint backlog
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Create a concrete development task.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be done?
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Subtasks
+      description: Break down into checklist items.
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is done?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - TRIZ Idea Generator
+        - Patent Searcher (RAG)
+        - Reasoning Agent (LangGraph)
+        - Draft Generator
+        - FastAPI / API Layer
+        - KIPRISplus Client
+        - Infrastructure / CI
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - "High"
+        - "Medium"
+        - "Low"
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Related issues, docs, or design links.
