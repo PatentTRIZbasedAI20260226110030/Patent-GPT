@@ -52,6 +52,7 @@ data/chromadb/
 # Local AI tool configs
 CLAUDE.md
 .claude/
+.cursor/
 
 # Local planning materials (not tracked)
 docs (have to gitignore this!)/
