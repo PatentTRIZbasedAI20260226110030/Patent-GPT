@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project Wiki
+    url: https://github.com/PatentTRIZbasedAI20260226110030/Patent-GPT/wiki
+    about: Check the project wiki for architecture docs, TRIZ methodology, and guides.
+  - name: Project Board
+    url: https://github.com/orgs/PatentTRIZbasedAI20260226110030/projects
+    about: View the Kanban board for current sprint status.
