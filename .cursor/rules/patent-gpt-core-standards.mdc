@@ -1,0 +1,60 @@
+---
+description: TRIZ 활용 인공지능 엔진 서비스 기획서 기반 코어 개발 규칙 (최우선)
+alwaysApply: true
+---
+
+# TRIZ AI Engine Core Standards
+
+## Project Context
+
+- **최우선 기준 문서:** `docs (have to gitignore this!)/기획서 프로젝트.pdf`
+- 본 서비스는 TRIZ(40가지 발명원리)를 활용해 불편/문제에서 발명 아이디어를 도출하는 AI 엔진 서비스다.
+- 핵심 가치: 막연한 문제 인식을 구체적인 특허 아이디어와 실행 가능한 인사이트로 전환한다.
+- 주요 타겟: 개인 발명가, 예비 창업자, R&D 엔지니어.
+- 기본 기술 스택: Python, FastAPI, LangGraph, LangChain, Pydantic v2, RAGAS, XGBoost.
+
+## Product Scope (From Planning PDF)
+
+- 기본 사용자 흐름은 `키워드 입력 -> 아이디어 생성 -> 특허 가치/신규성 평가`를 중심으로 설계한다.
+- AS-IS/경쟁사 조사, 타겟 페르소나, User Journey를 고려한 설명 가능형 결과를 제공한다.
+- 명세서 자동 작성은 후속 확장 범위로 두고, 초기 MVP는 **아이디어 발굴 + 평가** 품질을 우선한다.
+
+## Coding Standards
+
+- 모든 데이터 모델과 구조화 출력은 Pydantic v2를 사용한다.
+- I/O 작업(FastAPI 엔드포인트, LangChain 호출 포함)은 `async/await`를 우선한다.
+- LangGraph 노드는 가능하면 순수 함수 형태(`State -> Partial[State]`)로 유지한다.
+- 과도한 추상화보다 명확하고 간결한 구현을 우선한다.
+
+## LangGraph and State
+
+- `GraphState`는 `TypedDict` 또는 Pydantic 모델로 명확히 정의한다.
+- Checkpointer(예: SqliteSaver) 사용을 전제로 하며 상태 초기화를 하드코딩하지 않는다.
+- TRIZ 워크플로우의 자율 분기에는 Conditional Edge를 사용한다.
+- Reasoning 노드와 Tool 호출(Action) 노드를 분리한다.
+
+## TRIZ and Prompting
+
+- 발명 아이디어 생성 시 TRIZ 40원리와 모순행렬 로직을 따른다.
+- 프롬프트는 `prompts/` 같은 구조화된 디렉터리에 관리한다.
+- 아이디어 생성/평가 단계에서는 도메인 용어와 근거를 명시하는 Few-shot 예시를 활용한다.
+- 출력 형식은 `PydanticOutputParser` 또는 `.with_structured_output()`로 강제한다.
+
+## RAG Quality
+
+- BM25 + Vector(Chroma/Pinecone) 기반 Hybrid Search를 기본으로 한다.
+- 1차 검색 이후 Cross-Encoder re-ranking을 적용한다.
+- RAGAS(Faithfulness, Answer Relevance)로 결과 품질을 평가한다.
+
+## Documentation
+
+- 공개 메서드는 Google 스타일 docstring을 사용한다.
+- 복잡한 LangGraph 흐름에는 간단한 Mermaid 다이어그램 설명을 포함한다.
+- 기획서의 기능명/흐름명과 코드 상 명칭이 다를 경우, 기획서 용어를 우선으로 동기화한다.
+
+## Prohibited
+
+- 레거시 LangChain `Predict` 계열 API를 사용하지 않는다(`Invoke`/`Stream` 사용).
+- 외부 특허 데이터 처리 시 Pydantic 검증을 우회하지 않는다.
+- 깊은 중첩 로직 대신 LangGraph cycle/edge 설계를 활용한다.
+- 상위 기획서와 충돌하는 임의 기능 확장(범위 확대)을 먼저 구현하지 않는다.

@@ -7,6 +7,8 @@ __pycache__/
 dist/
 build/
 .eggs/
+
+# Virtual environments
 venv/
 .venv/
 env/
@@ -16,7 +18,7 @@ env/
 .env.*
 !.env.example
 
-# IDE
+# IDE / Editor
 .vscode/
 .idea/
 *.swp
@@ -27,17 +29,12 @@ env/
 .DS_Store
 Thumbs.db
 
-# Firebase
-firebase-debug.log
-firestore-debug.log
-ui-debug.log
-database-debug.log
-pubsub-debug.log
-.firebaserc
-
 # Logs
 *.log
 logs/
+
+# Firebase
+.firebaserc
 
 # Testing / Coverage
 .coverage
@@ -45,12 +42,18 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 
-# Data
+# Linting / Formatting
+.ruff_cache/
+
+# Data (ChromaDB persistent store, large files)
 data/chromadb/
 *.docx
 
-# Project docs (local planning materials)
-docs/
+# Local AI tool configs
+CLAUDE.md
+.claude/
+
+# Local planning materials (not tracked)
 docs (have to gitignore this!)/
 
 # Firebase
