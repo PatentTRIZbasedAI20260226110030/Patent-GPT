@@ -27,9 +27,7 @@ class PatentService:
     ) -> PatentGenerateResponse:
         # Stage 1: TRIZ Classification
         logger.info("Stage 1: Classifying problem with TRIZ principles...")
-        triz_principles = await self.triz_classifier.classify(
-            problem_description, technical_field
-        )
+        triz_principles = await self.triz_classifier.classify(problem_description, technical_field)
         if not triz_principles:
             raise ValueError("TRIZ classification failed to return any principles.")
 
@@ -56,9 +54,7 @@ class PatentService:
 
         # Stage 4: Draft Generation
         logger.info("Stage 4: Generating structured patent draft...")
-        triz_text = ", ".join(
-            f"#{p.number} {p.name_ko}({p.name_en})" for p in triz_principles
-        )
+        triz_text = ", ".join(f"#{p.number} {p.name_ko}({p.name_en})" for p in triz_principles)
         draft, docx_path = await self.draft_generator.generate(
             idea=final_state["final_idea"],
             problem_description=problem_description,

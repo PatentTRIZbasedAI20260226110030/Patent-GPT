@@ -1,8 +1,9 @@
 def test_patent_searcher_combines_results():
     """Searcher should merge BM25 + vector results and return SimilarPatent objects."""
+    from langchain_core.documents import Document
+
     from app.models.patent_draft import SimilarPatent
     from app.services.patent_searcher import merge_and_score_results
-    from langchain_core.documents import Document
 
     docs = [
         Document(

@@ -13,6 +13,7 @@ def test_patent_draft_model():
     assert draft.title == "접이식 방열 구조를 가진 전자 장치"
     assert len(draft.claims) == 2
 
+
 def test_similar_patent_model():
     from app.models.patent_draft import SimilarPatent
 
@@ -23,6 +24,7 @@ def test_similar_patent_model():
         similarity_score=0.85,
     )
     assert patent.similarity_score == 0.85
+
 
 def test_agent_state_keys():
     from app.models.state import AgentState

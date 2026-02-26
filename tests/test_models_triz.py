@@ -10,6 +10,7 @@ def test_triz_principle_model():
     assert p.number == 1
     assert p.name_ko == "분할"
 
+
 def test_load_triz_principles():
     from app.models.triz import load_triz_principles
 
