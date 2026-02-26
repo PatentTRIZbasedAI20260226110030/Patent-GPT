@@ -53,8 +53,7 @@ data/chromadb/
 CLAUDE.md
 .claude/
 
-# Project docs (local planning materials)
-docs/
+# Local planning materials (not tracked)
 docs (have to gitignore this!)/
 
 # Firebase
