@@ -47,6 +47,7 @@ htmlcov/
 
 # Data (ChromaDB persistent store, large files)
 data/chromadb/
+*.docx
 
 # Local AI tool configs
 CLAUDE.md
@@ -55,6 +56,9 @@ CLAUDE.md
 # Project docs (local planning materials)
 docs/
 docs (have to gitignore this!)/
+
+# Firebase
+firebase-debug.log
 
 # Worktrees
 .worktrees/
