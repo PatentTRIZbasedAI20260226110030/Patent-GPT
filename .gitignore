@@ -48,3 +48,6 @@ htmlcov/
 # Project docs (local planning materials)
 docs/
 docs (have to gitignore this!)/
+
+# Worktrees
+.worktrees/
