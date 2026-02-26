@@ -289,57 +289,88 @@ Patent-GPT/
 
 ## API
 
-### `GET /health`
+> **API 계약의 기준(Source of Truth):** [`tests/test_patent_route.py`](tests/test_patent_route.py) 기반 테스트 우선 계약.  
+> 본 섹션은 문서 단독 가정이 아니라 테스트로 검증된 동작을 기준으로 작성합니다.
+
+### `GET /api/v1/health`
 
 헬스체크 엔드포인트입니다.
 
 ```json
-{ "status": "ok" }
+{ "status": "healthy", "version": "0.1.0" }
 ```
 
 ### `POST /api/v1/patent/generate`
 
 전체 4단계 파이프라인 실행: TRIZ 분류 → 선행 특허 검색 → 회피 루프(필요 시) → 초안 생성.
 
+**최소 요청 바디 (route 테스트 기준):**
+
+```json
+{
+  "problem_description": "발열은 줄이고 싶지만 두께는 얇아야 한다"
+}
+```
+
 **요청 예시:**
 
 ```json
 {
-  "keyword": "휴대기기 발열 해소",
   "problem_description": "기기를 얇게 유지하면서 발열을 줄여야 한다",
-  "domain": "전자기기",
-  "language": "ko"
+  "technical_field": "전자기기",
+  "max_evasion_attempts": 3
 }
 ```
+
+**검증 실패 케이스 (route 테스트 기준):**
+
+```json
+{
+  "problem_description": ""
+}
+```
+
+예상 결과: `422 Unprocessable Entity`
 
 **응답 예시:**
 
 ```json
 {
-  "triz_principles": [...],
-  "inventive_idea": "...",
-  "similar_patents": [...],
-  "novelty_score": 0.72,
-  "evasion_applied": true,
   "patent_draft": {
     "title": "...",
     "abstract": "...",
-    "claims": [...],
     "background": "...",
     "problem_statement": "...",
     "solution": "...",
+    "claims": ["...", "...", "..."],
     "effects": "..."
-  }
+  },
+  "triz_principles": [...],
+  "similar_patents": [...],
+  "reasoning_trace": ["[아이디어 생성] ...", "[선행기술 조사] ...", "[완료] ..."],
+  "docx_download_url": "data/drafts/patent_draft_ab12cd34.docx"
 }
 ```
 
-### `GET /api/v1/patent/{id}/docx`
+### `GET /api/v1/patent/{draft_id}/docx`
 
 생성된 특허 초안을 DOCX 파일로 다운로드합니다.
+`docx_download_url`이 `data/drafts/patent_draft_ab12cd34.docx`라면
+`draft_id=patent_draft_ab12cd34`로 호출하면 됩니다.
+
+파일이 없으면(route 테스트 기준) `404 Not Found`를 반환합니다.
 
 ### `POST /api/v1/patent/search`
 
 전체 파이프라인 없이 선행 특허 검색만 단독으로 수행합니다.
+
+**최소 요청 바디 (route 테스트 기준):**
+
+```json
+{
+  "query": "방열 구조"
+}
+```
 
 ### `POST /api/v1/admin/ingest`
 

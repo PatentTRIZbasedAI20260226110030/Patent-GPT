@@ -290,57 +290,88 @@ Patent-GPT/
 
 ## API
 
-### `GET /health`
+> **API contract source of truth:** test-first contract in [`tests/test_patent_route.py`](tests/test_patent_route.py).  
+> This section follows test-verified behavior rather than documentation-only assumptions.
+
+### `GET /api/v1/health`
 
 Health check.
 
 ```json
-{ "status": "ok" }
+{ "status": "healthy", "version": "0.1.0" }
 ```
 
 ### `POST /api/v1/patent/generate`
 
 Full 4-stage pipeline: TRIZ classification → prior art search → evasion loop (if needed) → draft generation.
 
+**Minimal request body (matches route test):**
+
+```json
+{
+  "problem_description": "발열은 줄이고 싶지만 두께는 얇아야 한다"
+}
+```
+
 **Request:**
 
 ```json
 {
-  "keyword": "휴대기기 발열 해소",
   "problem_description": "기기를 얇게 유지하면서 발열을 줄여야 한다",
-  "domain": "전자기기",
-  "language": "ko"
+  "technical_field": "전자기기",
+  "max_evasion_attempts": 3
 }
 ```
+
+**Validation failure case (matches route test):**
+
+```json
+{
+  "problem_description": ""
+}
+```
+
+Expected: `422 Unprocessable Entity`
 
 **Response:**
 
 ```json
 {
-  "triz_principles": [...],
-  "inventive_idea": "...",
-  "similar_patents": [...],
-  "novelty_score": 0.72,
-  "evasion_applied": true,
   "patent_draft": {
     "title": "...",
     "abstract": "...",
-    "claims": [...],
     "background": "...",
     "problem_statement": "...",
     "solution": "...",
+    "claims": ["...", "...", "..."],
     "effects": "..."
-  }
+  },
+  "triz_principles": [...],
+  "similar_patents": [...],
+  "reasoning_trace": ["[아이디어 생성] ...", "[선행기술 조사] ...", "[완료] ..."],
+  "docx_download_url": "data/drafts/patent_draft_ab12cd34.docx"
 }
 ```
 
-### `GET /api/v1/patent/{id}/docx`
+### `GET /api/v1/patent/{draft_id}/docx`
 
 Download the generated patent draft as a DOCX file.
+If `docx_download_url` is `data/drafts/patent_draft_ab12cd34.docx`,
+use `draft_id=patent_draft_ab12cd34`.
+
+Missing file case (matches route test): `404 Not Found`
 
 ### `POST /api/v1/patent/search`
 
 Standalone prior art search without full pipeline.
+
+**Minimal request body (matches route test):**
+
+```json
+{
+  "query": "방열 구조"
+}
+```
 
 ### `POST /api/v1/admin/ingest`
 
