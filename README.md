@@ -1,25 +1,45 @@
 # Patent-GPT
 
-**Agentic RAG-based Invention Copilot powered by TRIZ + LLM**
+**TRIZ-powered AI Engine Service for Inventive Idea Discovery**
 
-> Input a technical contradiction, and Patent-GPT classifies it using TRIZ's 40 Inventive Principles, searches existing patents for similarity, autonomously redesigns to evade overlap, and generates a structured patent draft.
+> Enter a keyword or everyday problem, and Patent-GPT generates inventive ideas using TRIZ's 40 Inventive Principles, searches existing patents to evaluate novelty, autonomously redesigns to secure patent value, and outputs a structured patent draft.
+
+[한국어 README](README.ko.md)
+
+---
+
+## Why This Service?
+
+People encounter small inconveniences in daily life all the time, but turning those frustrations into concrete solutions — let alone patentable inventions — is surprisingly difficult. Existing AI patent services (GenIP, PatentFT, etc.) focus on **writing patent specifications** after you already have an idea. Patent-GPT starts earlier: it helps you **discover** the idea itself using TRIZ methodology, then carries it all the way through novelty evaluation and patent drafting.
+
+---
+
+## Target Users
+
+| Persona | Description |
+| :-- | :-- |
+| **Individual Inventors** | Have a vague sense of a problem but lack a systematic way to turn it into a patentable idea |
+| **Aspiring Entrepreneurs** | Want to build a patent portfolio for business but don't know where to start |
+| **R&D Engineers** | Need to quickly explore inventive design alternatives within technical constraints |
+
+**Core User Flow:** Keyword Input → TRIZ-based Idea Generation → Patent Novelty Evaluation → Structured Draft
 
 ---
 
 ## Key Features
 
 | Stage | Feature | Description | Tech |
-|:--:|:--|:--|:--|
-| 1 | **TRIZ Classifier** | Routes a technical contradiction to the most relevant TRIZ principles | LLM Few-Shot Prompting |
-| 2 | **Patent Searcher** | Hybrid search (BM25 + Vector) with Cross-Encoder reranking | Ensemble Retriever |
-| 3 | **Reasoning Agent** | If similarity > 80%, autonomously runs an evasion-design loop | LangGraph |
-| 4 | **Draft Generator** | Produces structured patent draft in JSON + DOCX | Pydantic + python-docx |
+| :--: | :-- | :-- | :-- |
+| 1 | **TRIZ Idea Generator** | Analyzes a keyword or problem with TRIZ 40 Inventive Principles to produce inventive ideas | LLM Few-Shot Prompting |
+| 2 | **Patent Searcher** | Hybrid search (BM25 + Vector) with Cross-Encoder reranking to evaluate novelty against existing patents | Ensemble Retriever |
+| 3 | **Reasoning Agent** | If similarity > 80 %, autonomously runs an evasion-design loop to secure patent value | LangGraph |
+| 4 | **Draft Generator** | Produces a structured patent draft in JSON + DOCX | Pydantic + python-docx |
 
 ---
 
 ## Architecture
 
-```
+```text
 ┌───────────────────────────────────────────────────┐
 │                  FastAPI Server                    │
 ├───────────────────────────────────────────────────┤
@@ -32,7 +52,8 @@
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐ │   │
 │  │  │ Stage 1  │→ │ Stage 2  │→ │ Stage 3  │ │   │
 │  │  │   TRIZ   │  │  Patent  │  │ Reasoning│ │   │
-│  │  │Classifier│  │ Searcher │  │  Agent   │ │   │
+│  │  │  Idea    │  │ Searcher │  │  Agent   │ │   │
+│  │  │Generator │  │          │  │          │ │   │
 │  │  └──────────┘  └──────────┘  └────┬─────┘ │   │
 │  │                                   │        │   │
 │  │                   ┌───────────────┘        │   │
@@ -62,7 +83,7 @@
 ## Tech Stack
 
 | Category | Technology |
-|:--|:--|
+| :-- | :-- |
 | Language | Python 3.11+ |
 | Framework | FastAPI, Uvicorn |
 | LLM Orchestration | LangChain, LangGraph |
@@ -131,7 +152,7 @@ pytest
 
 ## Project Structure
 
-```
+```text
 Patent-GPT/
 ├── app/
 │   ├── api/
@@ -170,9 +191,9 @@ Patent-GPT/
 Development follows four milestones tracked via [GitHub Issues](https://github.com/PatentTRIZbasedAI20260226110030/Patent-GPT/issues):
 
 | Milestone | Scope | Status |
-|:--|:--|:--:|
+| :-- | :-- | :--: |
 | **v0.1.0 · Foundation** | Project scaffolding, configuration, core data models, FastAPI skeleton, API schemas (Tasks 1–6) | ✅ Done |
-| **v0.2.0 · Core Services** | TRIZ Classifier, KIPRISplus client, ingestion script, Hybrid Patent Searcher, prompt library (Tasks 7–11) | 🔧 In Progress |
+| **v0.2.0 · Core Services** | TRIZ Idea Generator, KIPRISplus client, ingestion script, Hybrid Patent Searcher, prompt library (Tasks 7–11) | 🔧 In Progress |
 | **v0.3.0 · Agent & Output** | LangGraph Reasoning Agent, Draft Generator (Pydantic + DOCX), PatentService orchestrator (Tasks 12–14) | 📋 Planned |
 | **v0.4.0 · Ship** | Route wiring, linting, full test suite, server smoke test (Tasks 15–16) | 📋 Planned |
 
@@ -190,11 +211,13 @@ Health check.
 
 ### `POST /api/v1/patent/generate`
 
-Generate a patent idea from a technical contradiction.
+Generate an inventive idea and patent draft from a keyword or problem description.
 
 **Request:**
+
 ```json
 {
+  "keyword": "portable device heat dissipation",
   "problem_description": "Need to reduce heat generation while keeping the device thin",
   "domain": "Electronics",
   "language": "ko"
@@ -202,19 +225,21 @@ Generate a patent idea from a technical contradiction.
 ```
 
 **Response:**
+
 ```json
 {
   "triz_principles": [...],
+  "inventive_idea": "...",
   "similar_patents": [...],
+  "novelty_score": 0.72,
+  "evasion_applied": true,
   "patent_draft": {
     "title": "...",
     "abstract": "...",
     "claims": [...],
     "background": "...",
     "solution": "..."
-  },
-  "evasion_applied": true,
-  "similarity_score": 0.72
+  }
 }
 ```
 

@@ -7,7 +7,9 @@ alwaysApply: true
 
 ## Project Context
 
-- Patent-GPT는 TRIZ(창의적 문제 해결 이론)와 Agentic RAG를 활용해 특허 초안 작성을 지원한다.
+- Patent-GPT는 TRIZ(창의적 문제 해결 이론) 활용 아이디어 발굴 AI 엔진 서비스이다.
+- 키워드/문제 입력 → TRIZ 기반 아이디어 생성 → 특허 신규성 평가 → 회피 설계 → 특허 초안 출력 흐름을 따른다.
+- 타겟 사용자: 개인 발명가, 예비 창업자, R&D 엔지니어.
 - Core stack: Python, FastAPI, LangGraph, LangChain, Pydantic v2, RAGAS, XGBoost.
 
 ## Coding Standards
