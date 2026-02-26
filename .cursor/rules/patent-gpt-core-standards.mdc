@@ -1,0 +1,49 @@
+---
+description: Patent-GPT 코어 개발 규칙 및 아키텍처 가이드
+alwaysApply: true
+---
+
+# Patent-GPT Core Standards
+
+## Project Context
+
+- Patent-GPT는 TRIZ(창의적 문제 해결 이론)와 Agentic RAG를 활용해 특허 초안 작성을 지원한다.
+- Core stack: Python, FastAPI, LangGraph, LangChain, Pydantic v2, RAGAS, XGBoost.
+
+## Coding Standards
+
+- 모든 데이터 모델과 구조화 출력은 Pydantic v2를 사용한다.
+- I/O 작업(FastAPI 엔드포인트, LangChain 호출 포함)은 `async/await`를 우선한다.
+- LangGraph 노드는 가능하면 순수 함수 형태(`State -> Partial[State]`)로 유지한다.
+- 과도한 추상화보다 명확하고 간결한 구현을 우선한다.
+
+## LangGraph and State
+
+- `GraphState`는 `TypedDict` 또는 Pydantic 모델로 명확히 정의한다.
+- Checkpointer(예: SqliteSaver) 사용을 전제로 하며 상태 초기화를 하드코딩하지 않는다.
+- TRIZ 워크플로우의 자율 분기에는 Conditional Edge를 사용한다.
+- Reasoning 노드와 Tool 호출(Action) 노드를 분리한다.
+
+## TRIZ and Prompting
+
+- 발명 아이디어 생성 시 TRIZ 40원리와 모순행렬 로직을 따른다.
+- 프롬프트는 `prompts/` 같은 구조화된 디렉터리에 관리한다.
+- 특허 청구항 생성에는 Few-shot 예시를 활용한다.
+- 출력 형식은 `PydanticOutputParser` 또는 `.with_structured_output()`로 강제한다.
+
+## RAG Quality
+
+- BM25 + Vector(Chroma/Pinecone) 기반 Hybrid Search를 기본으로 한다.
+- 1차 검색 이후 Cross-Encoder re-ranking을 적용한다.
+- RAGAS(Faithfulness, Answer Relevance)로 결과 품질을 평가한다.
+
+## Documentation
+
+- 공개 메서드는 Google 스타일 docstring을 사용한다.
+- 복잡한 LangGraph 흐름에는 간단한 Mermaid 다이어그램 설명을 포함한다.
+
+## Prohibited
+
+- 레거시 LangChain `Predict` 계열 API를 사용하지 않는다(`Invoke`/`Stream` 사용).
+- 외부 특허 데이터 처리 시 Pydantic 검증을 우회하지 않는다.
+- 깊은 중첩 로직 대신 LangGraph cycle/edge 설계를 활용한다.
