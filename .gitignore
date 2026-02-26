@@ -1,63 +1,107 @@
-# Dependencies
-node_modules/
+# ============================================================
+# Patent-GPT .gitignore
+# ============================================================
+
+# ── Python ──────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 *.egg-info/
 *.egg
 dist/
 build/
 .eggs/
+*.whl
 
-# Virtual environments
+# ── Virtual Environments ───────────────────────────────────
 venv/
 .venv/
 env/
+ENV/
 
-# Environment variables
+# ── Environment Variables / Secrets ────────────────────────
 .env
 .env.*
 !.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+credentials*.json
+serviceAccount*.json
+secrets.*
 
-# IDE / Editor
+# ── IDE / Editor ───────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
 
-# OS
+# ── AI Coding Tools (local configs, NOT for repo) ─────────
+CLAUDE.md
+.claude/
+.cursor/
+.copilot/
+.windsurf/
+.aider*
+.codex/
+.codeium/
+.continue/
+.supermaven/
+
+# ── OS ─────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+Desktop.ini
+._*
 
-# Logs
+# ── Logs ───────────────────────────────────────────────────
 *.log
 logs/
+firebase-debug.log
 
-# Firebase
-.firebaserc
-
-# Testing / Coverage
+# ── Testing / Coverage ─────────────────────────────────────
 .coverage
+.coverage.*
 htmlcov/
 .pytest_cache/
 .mypy_cache/
+.tox/
+.nox/
 
-# Linting / Formatting
+# ── Linting / Formatting ──────────────────────────────────
 .ruff_cache/
 
-# Data (ChromaDB persistent store, large files)
+# ── Data / ML Artifacts (large binary files) ───────────────
 data/chromadb/
 *.docx
+*.bin
+*.pt
+*.onnx
+*.h5
+*.hdf5
+*.parquet
+*.arrow
+*.safetensors
+*.model
 
-# Local AI tool configs
-CLAUDE.md
-.claude/
+# ── Database ───────────────────────────────────────────────
+*.db
+*.sqlite3
 
-# Local planning materials (not tracked)
+# ── Node (if any frontend later) ──────────────────────────
+node_modules/
+
+# ── Firebase ───────────────────────────────────────────────
+.firebaserc
+
+# ── Local Planning Materials ───────────────────────────────
 docs (have to gitignore this!)/
 
-# Firebase
-firebase-debug.log
-
-# Worktrees
+# ── Git Worktrees ──────────────────────────────────────────
 .worktrees/
