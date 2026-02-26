@@ -1,44 +1,126 @@
 # Patent-GPT
 
-**Agentic RAG-based Invention Copilot — TRIZ methodology + LLM for patent idea generation and novelty validation**
+**AI Engine Service Using TRIZ for Generating New Inventive Ideas**
 
-> Enter a keyword or everyday problem. Patent-GPT applies TRIZ's 40 Inventive Principles to generate inventive ideas, searches existing patents for prior art via hybrid retrieval, autonomously redesigns when similarity is too high, and outputs a structured KIPO-format patent draft in JSON + DOCX.
+> Team 5 · Track C (New AI Service Planning) · AI Bootcamp 2026 · Presentation: 2026-03-04
 
 [한국어 README](README.ko.md)
 
 ---
 
-## Why This Service?
+## Table of Contents
 
-People encounter small inconveniences in daily life all the time, but turning those frustrations into concrete, patentable inventions is surprisingly difficult. Existing AI patent services (GenIP, PatentFT, etc.) focus on **writing patent specifications** after you already have an idea. Patent-GPT starts earlier: it helps you **discover** the idea using TRIZ methodology, then carries it through novelty evaluation and patent drafting — all in one pipeline.
+1. [Why This Service?](#1-why-this-service)
+2. [AS-IS: Market & Competitor Analysis](#2-as-is-market--competitor-analysis)
+3. [User Analysis](#3-user-analysis)
+4. [TO-BE: Proposed AI Feature Concept](#4-to-be-proposed-ai-feature-concept)
+5. [Service Details: Architecture & Flow Chart](#5-service-details-architecture--flow-chart)
+6. [Expected Impact](#6-expected-impact)
+7. [Quick Start](#quick-start)
+8. [Project Structure](#project-structure)
+9. [API](#api)
+10. [Roadmap](#roadmap)
 
-**Key differentiators vs. existing tools:**
+---
+
+## 1. Why This Service?
+
+**TRIZ** (Theory of Solving Inventive Problem) is a systematic methodology for solving inventive problems, developed by Genrich Altshuller in the former Soviet Union.
+
+Everyone has experienced small inconveniences in daily life. But when you actually try to solve those inconveniences, it's common to fail to find the right approach.
+
+This service uses an AI engine powered by **TRIZ's 40 Inventive Principles** to transform vague problem awareness into **concrete patent ideas** and **actionable insights**.
+
+**Core Value:**
+
+```
+Keyword Input → Patent Idea Generation → Patent Value Assessment
+```
+
+---
+
+## 2. AS-IS: Market & Competitor Analysis
+
+Existing AI services in the patent domain primarily focus on going beyond the idea stage to provide **specification writing** services.
+
+| Service | Description |
+| :-- | :-- |
+| **GenIP** | Provides 'Gen-D', a generative AI-based specification writing service to assist patent attorneys |
+| **PatentFT** | 'PatenDraft' program that analyzes keywords to produce patent specification drafts |
+| **KIPO (Korean IP Office)** | Freely opened 7 types of IP data for AI training through KIPRISplus |
+
+> **Limitation of existing services:** They focus on helping with specification writing when an idea already exists.
+> Patent-GPT starts at an earlier stage — **discovering the idea itself and evaluating its value**.
+
+---
+
+## 3. User Analysis
+
+### Target Persona: Individual Inventor / Aspiring Entrepreneur
+
+| Item | Detail |
+| :-- | :-- |
+| **Name** | Min-A Jung (Age 31) |
+| **Occupation** | Aspiring Entrepreneur |
+| **Situation** | Vaguely thinks she should have a patent, but lacks concrete technology |
+| **Goal** | Discover commercially viable patent ideas, apply for government support programs |
+
+### Pain Points
+
+- Doesn't know what to build
+- Searches patents but struggles to extract insights
+- Lacks understanding of technology trends
+
+### Needs (Core User Flow)
+
+```
+Keyword Input → Patent Idea Generation → Patent Value Assessment
+```
+
+### User Journey Map
+
+| Phase | Awareness | Exploration | Usage | Evaluation |
+| :-- | :-- | :-- | :-- | :-- |
+| **Action** | Recognizes inconvenience | Starts keyword search | TRIZ-based idea generation | Checks patent value/novelty |
+| **Emotion** | Vague frustration | Anticipation | Sense of concreteness | Judges feasibility |
+| **Touchpoint** | Daily experience | Access Patent-GPT | Review results | Evaluation report |
+
+---
+
+## 4. TO-BE: Proposed AI Feature Concept
+
+### Key Differentiators vs. Existing Services
 
 | Dimension | Existing Services (AS-IS) | Patent-GPT (TO-BE) |
 | :-- | :-- | :-- |
-| Search method | Simple keyword matching | Semantic + keyword + reranking |
-| Interaction model | One-shot stateless Q&A | Agentic loop with conditional redesign |
-| Output format | Unstructured text | Pydantic-validated JSON → DOCX |
-| Methodology | General LLM knowledge | TRIZ 40 Principles via few-shot prompting |
+| **Focus** | Specification writing assistance | **Idea discovery + value assessment** |
+| **Methodology** | General LLM knowledge | TRIZ 40 Principles via Few-Shot Prompting |
+| **Search Method** | Simple keyword matching | Semantic + keyword + reranking (hybrid) |
+| **Interaction** | One-shot stateless Q&A | Conditional redesign loop (Agentic) |
+| **Output** | Unstructured text | Pydantic-validated JSON → DOCX |
 
----
+### Applied Technologies
 
-## Target Users
-
-| Persona | Description |
+| Category | Technology |
 | :-- | :-- |
-| **Individual Inventors** | Have a vague problem but lack a systematic method to turn it into a patentable idea |
-| **Aspiring Entrepreneurs** | Want a patent portfolio but don't know what to build |
-| **R&D Engineers** | Need to rapidly explore inventive design alternatives within technical constraints |
-
-**Core User Flow:** Problem/Keyword Input → TRIZ-based Idea Generation → Patent Novelty Evaluation → Structured Draft Output
+| Language | Python 3.11+ |
+| Framework | FastAPI, Uvicorn |
+| LLM Orchestration | LangChain, LangGraph |
+| LLM | OpenAI GPT-4o (generation), GPT-4o-mini (classification) |
+| Embeddings | OpenAI text-embedding-3-small |
+| Vector DB | ChromaDB (local, in-process) |
+| Search | BM25 (rank-bm25) + Cross-Encoder (sentence-transformers) |
+| Patent Data | KIPRISplus Open API |
+| Output | Pydantic Structured Output + python-docx |
+| Testing | pytest, pytest-asyncio |
+| Linting | Ruff |
 
 ---
 
-## Architecture
+## 5. Service Details: Architecture & Flow Chart
 
-**Approach B: Service Layer + LangGraph Core**
-FastAPI routes → Service layer → LangGraph for evasion loop only.
+**Service Layer + LangGraph Core**
+FastAPI routes → Service layer → LangGraph (applied only for the evasion design loop).
 Each pipeline stage is a standalone, independently testable service.
 
 ```text
@@ -53,8 +135,9 @@ Each pipeline stage is a standalone, independently testable service.
 │  │                                            │   │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐ │   │
 │  │  │ Stage 1  │→ │ Stage 2  │→ │ Stage 3  │ │   │
-│  │  │   TRIZ   │  │  Patent  │  │ Reasoning│ │   │
-│  │  │ Classifier│  │ Searcher │  │  Agent   │ │   │
+│  │  │   TRIZ   │  │  Prior   │  │Reasoning │ │   │
+│  │  │Classifier│  │  Art     │  │  Agent   │ │   │
+│  │  │          │  │ Searcher │  │          │ │   │
 │  │  └──────────┘  └──────────┘  └────┬─────┘ │   │
 │  │                                   │        │   │
 │  │                   ┌───────────────┘        │   │
@@ -83,28 +166,21 @@ Each pipeline stage is a standalone, independently testable service.
 
 | Stage | Service | Description | Tech |
 | :--: | :-- | :-- | :-- |
-| 1 | **TRIZClassifier** | Maps problem to relevant TRIZ principles via few-shot LLM routing | GPT-4o-mini, Few-Shot Prompting |
-| 2 | **PatentSearcher** | Hybrid retrieval over KIPRISplus data, reranked for precision | BM25 + ChromaDB + Cross-Encoder |
-| 3 | **ReasoningAgent** | If novelty score < threshold, autonomously redesigns the idea | LangGraph evasion loop |
-| 4 | **DraftGenerator** | Produces structured KIPO-format draft in JSON + DOCX | Pydantic `with_structured_output` + python-docx |
+| 1 | **TRIZ Classifier** | Maps problem to TRIZ principles via few-shot LLM routing | GPT-4o-mini, Few-Shot Prompting |
+| 2 | **Prior Art Searcher** | Hybrid retrieval over KIPRISplus data + precision reranking | BM25 + ChromaDB + Cross-Encoder |
+| 3 | **Reasoning Agent** | Autonomous redesign when similarity exceeds threshold (evasion design) | LangGraph evasion loop |
+| 4 | **Draft Generator** | KIPO-format JSON + DOCX patent draft generation | Pydantic `with_structured_output` + python-docx |
 
 ---
 
-## Tech Stack
+## 6. Expected Impact
 
-| Category | Technology |
+| Perspective | Expected Impact |
 | :-- | :-- |
-| Language | Python 3.11+ |
-| Framework | FastAPI, Uvicorn |
-| LLM Orchestration | LangChain, LangGraph |
-| LLM | OpenAI GPT-4o (generation), GPT-4o-mini (classification) |
-| Embeddings | OpenAI text-embedding-3-small |
-| Vector DB | ChromaDB (local, in-process) |
-| Search | BM25 (rank-bm25) + Cross-Encoder (sentence-transformers) |
-| Patent Data | KIPRISplus Open API |
-| Output | Pydantic Structured Output + python-docx |
-| Testing | pytest, pytest-asyncio |
-| Linting | Ruff |
+| **Individual Inventors** | Leverage systematic TRIZ methodology for idea generation without expert knowledge |
+| **Aspiring Entrepreneurs** | Rapidly discover commercially viable patent ideas and pre-validate their value |
+| **R&D Engineers** | Automatically explore differentiated design alternatives against existing patents |
+| **Patent Industry** | Lower the barrier to entry, expanding participation of individual/SME inventors |
 
 ---
 
@@ -149,7 +225,6 @@ CHROMA_PERSIST_DIR=./data/chromadb
 ### Ingest Patent Data
 
 ```bash
-# Populate ChromaDB with KIPRISplus patent data before running searches
 python scripts/ingest_patents.py
 ```
 
@@ -195,7 +270,7 @@ Patent-GPT/
 │   │   ├── reasoning_agent.py    # Stage 3: LangGraph evasion loop
 │   │   └── triz_classifier.py    # Stage 1: LLM-based TRIZ routing
 │   ├── utils/
-│   │   ├── docx_exporter.py      # DOCX generation from PatentDraft
+│   │   ├── docx_exporter.py      # PatentDraft → DOCX export
 │   │   └── kipris_client.py      # KIPRISplus async API client
 │   ├── config.py                 # pydantic-settings env config
 │   └── main.py                   # FastAPI app entrypoint
@@ -203,22 +278,8 @@ Patent-GPT/
 │   └── triz_principles.json      # 40 TRIZ inventive principles
 ├── scripts/
 │   └── ingest_patents.py         # KIPRISplus → ChromaDB batch ingestion
-├── tests/
-│   ├── test_config.py
-│   ├── test_draft_generator.py
-│   ├── test_health.py
-│   ├── test_kipris_client.py
-│   ├── test_models.py
-│   ├── test_models_triz.py
-│   ├── test_patent_route.py
-│   ├── test_patent_searcher.py
-│   ├── test_patent_service.py
-│   ├── test_reasoning_agent.py
-│   └── test_triz_classifier.py
-├── wiki/
-│   ├── Architecture.md
-│   ├── Home.md
-│   └── TRIZ_Methodology.md
+├── tests/                        # Per-module unit tests
+├── wiki/                         # GitHub Wiki documents
 ├── .env.example
 ├── pyproject.toml
 ├── CLAUDE.md
@@ -245,9 +306,9 @@ Full 4-stage pipeline: TRIZ classification → prior art search → evasion loop
 
 ```json
 {
-  "keyword": "portable device heat dissipation",
-  "problem_description": "Need to reduce heat generation while keeping the device thin",
-  "domain": "Electronics",
+  "keyword": "휴대기기 발열 해소",
+  "problem_description": "기기를 얇게 유지하면서 발열을 줄여야 한다",
+  "domain": "전자기기",
   "language": "ko"
 }
 ```
@@ -291,22 +352,20 @@ Trigger patent ingestion from KIPRISplus into ChromaDB.
 
 | Milestone | Scope | Status |
 | :-- | :-- | :--: |
-| **v0.1.0 · Foundation** | Project scaffolding, config, core data models, FastAPI skeleton, API schemas (Tasks 1–6) | ✅ Done |
-| **v0.2.0 · Core Services** | TRIZ Classifier, KIPRISplus client, ingestion script, Hybrid Patent Searcher, Prompt Library (Tasks 7–11) | ✅ Done |
-| **v0.3.0 · Agent & Output** | LangGraph Reasoning Agent, Draft Generator (Pydantic + DOCX), PatentService orchestrator (Tasks 12–14) | ✅ Done |
-| **v0.4.0 · Ship** | Route wiring, linting (Ruff), full test suite, smoke test (Tasks 15–16) | ✅ Done |
-| **v0.5.0 · Intelligence** | RAGAS evaluation (Faithfulness/Relevancy/Recall), TRIZ Contradiction Matrix, conversation memory | 📋 Planned |
+| **v0.1.0 · Foundation** | Project scaffolding, config, core data models, FastAPI skeleton, API schemas | ✅ Done |
+| **v0.2.0 · Core Services** | TRIZ Classifier, KIPRISplus client, ingestion script, Hybrid Patent Searcher, Prompt Library | ✅ Done |
+| **v0.3.0 · Agent & Output** | LangGraph Reasoning Agent, Draft Generator (Pydantic + DOCX), PatentService orchestrator | ✅ Done |
+| **v0.4.0 · Ship** | Route wiring, Ruff linting, full test suite, smoke test | ✅ Done |
+| **v0.5.0 · Intelligence** | RAGAS evaluation, TRIZ Contradiction Matrix, conversation memory | 📋 Planned |
 
----
+### MVP Scope Limitations
 
-## Known Limitations (MVP Scope)
+The initial MVP prioritizes **idea discovery + evaluation** quality. The following features are planned for future versions:
 
-The following features are in the planning docs but not yet implemented:
-
-- **RAGAS evaluation** — faithfulness scoring and context recall metrics ("Core Tech 5" from the proposal)
-- **Tool Calling in ReasoningAgent** — TavilySearch / PythonREPL as agent tools (current evasion loop is prompt-based, not tool-calling)
-- **TRIZ Contradiction Matrix** — 40×40 parameter mapping for more precise principle selection (current: flat 40-principles list)
-- **Conversation memory** — stateful multi-turn sessions ("맥락 기억"); current pipeline is stateless per request
+- **RAGAS evaluation** — Faithfulness, Context Recall metrics
+- **TRIZ Contradiction Matrix** — Precise principle selection via parameter mapping
+- **Conversation memory** — Multi-turn stateful sessions
+- **Tool Calling** — TavilySearch / PythonREPL agent tools
 - **Frontend** — API-only MVP; no UI implemented
 - **HWP export** — DOCX only for now
 
@@ -320,5 +379,5 @@ The following features are in the planning docs but not yet implemented:
 
 ## Team
 
-**Team 5** · Track C (New AI Service) · AI Bootcamp 2026
+**Team 5** · Track C (New AI Service Planning) · AI Bootcamp 2026
 Presentation: 2026-03-04
