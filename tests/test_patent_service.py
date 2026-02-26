@@ -1,6 +1,7 @@
 def test_patent_service_has_required_methods():
     """PatentService should expose a generate() method."""
     import inspect
+
     from app.services.patent_service import PatentService
 
     assert hasattr(PatentService, "generate")

@@ -23,6 +23,7 @@ async def ingest_patents(
 ):
     try:
         from scripts.ingest_patents import ingest
+
         count = await ingest(request.keyword, request.max_patents)
         return IngestResponse(ingested_count=count, status="success")
     except Exception as e:

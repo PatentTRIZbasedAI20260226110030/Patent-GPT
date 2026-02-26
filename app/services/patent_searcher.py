@@ -13,9 +13,7 @@ from app.models.patent_draft import SimilarPatent
 logger = logging.getLogger(__name__)
 
 
-def merge_and_score_results(
-    docs: list[Document], scores: list[float]
-) -> list[SimilarPatent]:
+def merge_and_score_results(docs: list[Document], scores: list[float]) -> list[SimilarPatent]:
     if not docs:
         return []
     results = []
@@ -58,9 +56,7 @@ class PatentSearcher:
             return []
 
         # Dense retriever (vector search)
-        dense_retriever = vectorstore.as_retriever(
-            search_kwargs={"k": retrieval_k}
-        )
+        dense_retriever = vectorstore.as_retriever(search_kwargs={"k": retrieval_k})
 
         # Sparse retriever (BM25)
         all_docs = vectorstore.get()

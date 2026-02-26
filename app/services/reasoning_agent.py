@@ -15,10 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def should_evade(state: dict[str, Any], threshold: float, max_attempts: int) -> bool:
-    return (
-        state["max_similarity_score"] > threshold
-        and state["evasion_count"] < max_attempts
-    )
+    return state["max_similarity_score"] > threshold and state["evasion_count"] < max_attempts
 
 
 class ReasoningAgent:
@@ -30,14 +27,18 @@ class ReasoningAgent:
             api_key=settings.OPENAI_API_KEY,
             temperature=0.7,
         )
-        self.idea_prompt = ChatPromptTemplate.from_messages([
-            ("system", TRIZ_EXPERT_SYSTEM),
-            ("human", TRIZ_IDEA_GENERATION_HUMAN),
-        ])
-        self.evasion_prompt = ChatPromptTemplate.from_messages([
-            ("system", EVASION_SYSTEM),
-            ("human", EVASION_HUMAN),
-        ])
+        self.idea_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", TRIZ_EXPERT_SYSTEM),
+                ("human", TRIZ_IDEA_GENERATION_HUMAN),
+            ]
+        )
+        self.evasion_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", EVASION_SYSTEM),
+                ("human", EVASION_HUMAN),
+            ]
+        )
         self.graph = self._build_graph()
 
     def _build_graph(self) -> StateGraph:
@@ -76,14 +77,16 @@ class ReasoningAgent:
             f"#{p.number} {p.name_ko}({p.name_en})" for p in state["triz_principles"]
         )
         chain = self.idea_prompt | self.llm
-        response = await chain.ainvoke({
-            "problem_description": state["user_problem"],
-            "triz_principles": triz_text,
-        })
+        response = await chain.ainvoke(
+            {
+                "problem_description": state["user_problem"],
+                "triz_principles": triz_text,
+            }
+        )
         return {
             "current_idea": response.content,
             "reasoning_trace": state["reasoning_trace"]
-                + [f"[아이디어 생성] TRIZ 원리 {triz_text} 적용"],
+            + [f"[아이디어 생성] TRIZ 원리 {triz_text} 적용"],
         }
 
     async def _search_prior_art_node(self, state: AgentState) -> dict:
@@ -94,15 +97,16 @@ class ReasoningAgent:
             "similar_patents": results,
             "max_similarity_score": max_score,
             "reasoning_trace": state["reasoning_trace"]
-                + [f"[선행기술 조사] {len(results)}건 검색, 최대 유사도: {max_score:.1%}"],
+            + [f"[선행기술 조사] {len(results)}건 검색, 최대 유사도: {max_score:.1%}"],
         }
 
     async def _evaluate_node(self, state: AgentState) -> dict:
         threshold = self.settings.SIMILARITY_THRESHOLD
-        if state["max_similarity_score"] > threshold:
-            msg = f"[평가] 유사도 {state['max_similarity_score']:.1%} > {threshold:.0%} → 회피 설계 필요"
+        score = state["max_similarity_score"]
+        if score > threshold:
+            msg = f"[평가] 유사도 {score:.1%} > {threshold:.0%} → 회피 설계 필요"
         else:
-            msg = f"[평가] 유사도 {state['max_similarity_score']:.1%} ≤ {threshold:.0%} → 독창성 확보"
+            msg = f"[평가] 유사도 {score:.1%} ≤ {threshold:.0%} → 독창성 확보"
         return {
             "reasoning_trace": state["reasoning_trace"] + [msg],
         }
@@ -113,18 +117,20 @@ class ReasoningAgent:
             for p in state["similar_patents"][:3]
         )
         chain = self.evasion_prompt | self.llm
-        response = await chain.ainvoke({
-            "problem_description": state["user_problem"],
-            "current_idea": state["current_idea"],
-            "similar_patents_text": patents_text,
-            "max_similarity_score": state["max_similarity_score"],
-        })
+        response = await chain.ainvoke(
+            {
+                "problem_description": state["user_problem"],
+                "current_idea": state["current_idea"],
+                "similar_patents_text": patents_text,
+                "max_similarity_score": state["max_similarity_score"],
+            }
+        )
         new_count = state["evasion_count"] + 1
         return {
             "current_idea": response.content,
             "evasion_count": new_count,
             "reasoning_trace": state["reasoning_trace"]
-                + [f"[회피 설계 #{new_count}] 새로운 아이디어 생성"],
+            + [f"[회피 설계 #{new_count}] 새로운 아이디어 생성"],
         }
 
     async def _finalize_node(self, state: AgentState) -> dict:

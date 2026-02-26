@@ -29,21 +29,24 @@ class TRIZClassifier:
         )
         self.principles = load_triz_principles()
         principles_text = "\n".join(
-            f"#{p.number} {p.name_en} ({p.name_ko}): {p.description}"
-            for p in self.principles
+            f"#{p.number} {p.name_en} ({p.name_ko}): {p.description}" for p in self.principles
         )
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", TRIZ_CLASSIFIER_SYSTEM),
-            ("human", TRIZ_CLASSIFIER_HUMAN),
-        ]).partial(principles_list=principles_text)
+        self.prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", TRIZ_CLASSIFIER_SYSTEM),
+                ("human", TRIZ_CLASSIFIER_HUMAN),
+            ]
+        ).partial(principles_list=principles_text)
 
     async def classify(
         self, problem_description: str, technical_field: str | None = None
     ) -> list[TRIZPrinciple]:
         field_context = f"기술 분야: {technical_field}" if technical_field else ""
         chain = self.prompt | self.llm
-        response = await chain.ainvoke({
-            "problem_description": problem_description,
-            "field_context": field_context,
-        })
+        response = await chain.ainvoke(
+            {
+                "problem_description": problem_description,
+                "field_context": field_context,
+            }
+        )
         return parse_principles_response(response.content)

@@ -1,4 +1,5 @@
 """Fetch patents from KIPRISplus and ingest into ChromaDB."""
+
 import argparse
 import asyncio
 import logging

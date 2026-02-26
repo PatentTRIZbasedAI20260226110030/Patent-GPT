@@ -44,10 +44,12 @@ class DraftGenerator:
             api_key=settings.OPENAI_API_KEY,
             temperature=0.3,
         ).with_structured_output(PatentDraft)
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", DRAFT_SYSTEM),
-            ("human", DRAFT_HUMAN),
-        ])
+        self.prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", DRAFT_SYSTEM),
+                ("human", DRAFT_HUMAN),
+            ]
+        )
         self.output_dir = Path("data/drafts")
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -58,11 +60,13 @@ class DraftGenerator:
         triz_principles_text: str,
     ) -> tuple[PatentDraft, str | None]:
         chain = self.prompt | self.llm
-        draft = await chain.ainvoke({
-            "idea": idea,
-            "problem_description": problem_description,
-            "triz_principles": triz_principles_text,
-        })
+        draft = await chain.ainvoke(
+            {
+                "idea": idea,
+                "problem_description": problem_description,
+                "triz_principles": triz_principles_text,
+            }
+        )
 
         # Export to DOCX
         docx_path = None

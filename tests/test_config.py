@@ -1,6 +1,3 @@
-import os
-
-
 def test_settings_loads_defaults():
     """Settings should have sensible defaults even without .env file."""
     from app.config import Settings
@@ -22,6 +19,7 @@ def test_settings_requires_api_keys(monkeypatch):
     """Settings should fail without required API keys."""
     import pytest
     from pydantic import ValidationError
+
     from app.config import Settings
 
     # Clear env vars that might satisfy the requirement
