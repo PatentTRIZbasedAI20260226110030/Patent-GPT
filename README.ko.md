@@ -245,6 +245,11 @@ pytest
 
 ```text
 Patent-GPT/
+├── frontend/
+│   ├── docs/
+│   │   ├── SCREEN_DEFINITION.md  # 화면 정의서 (Figma 디자인 참조)
+│   │   └── FIGMA_GUIDE.md        # Figma 활용 가이드
+│   └── assets/                   # 디자인 에셋 (Figma export 등)
 ├── app/
 │   ├── api/
 │   │   ├── routes/
