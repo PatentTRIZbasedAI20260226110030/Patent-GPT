@@ -105,3 +105,4 @@ docs (have to gitignore this!)/
 
 # ── Git Worktrees ──────────────────────────────────────────
 .worktrees/
+frontend/tsconfig.tsbuildinfo
