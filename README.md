@@ -1,10 +1,16 @@
-# Patent-GPT
+# Patent-GPT: AI-Powered TRIZ Invention Pilot
 
 **AI Engine Service Using TRIZ for Generating New Inventive Ideas**
 
 > Team 5 · Track C (New AI Service Planning) · AI Bootcamp 2026 · Presentation: 2026-03-04
 
 [한국어 README](README.ko.md)
+
+---
+
+> **Business Value:** Lowering patent barriers through TRIZ-based AI generation and attorney matching —
+> enabling individual inventors and aspiring entrepreneurs to discover, evaluate, and draft patent ideas
+> without prior expert knowledge.
 
 ---
 
@@ -16,10 +22,11 @@
 4. [TO-BE: Proposed AI Feature Concept](#4-to-be-proposed-ai-feature-concept)
 5. [Service Details: Architecture & Flow Chart](#5-service-details-architecture--flow-chart)
 6. [Expected Impact](#6-expected-impact)
-7. [Quick Start](#quick-start)
-8. [Project Structure](#project-structure)
-9. [API](#api)
-10. [Roadmap](#roadmap)
+7. [Features: Implemented Screens](#7-features-implemented-screens)
+8. [Quick Start](#quick-start)
+9. [Project Structure](#project-structure)
+10. [API](#api)
+11. [Roadmap](#roadmap)
 
 ---
 
@@ -99,7 +106,9 @@ Keyword Input → Patent Idea Generation → Patent Value Assessment
 | **Interaction** | One-shot stateless Q&A | Conditional redesign loop (Agentic) |
 | **Output** | Unstructured text | Pydantic-validated JSON → DOCX |
 
-### Applied Technologies
+### Tech Stack
+
+#### Backend
 
 | Category | Technology |
 | :-- | :-- |
@@ -114,6 +123,18 @@ Keyword Input → Patent Idea Generation → Patent Value Assessment
 | Output | Pydantic Structured Output + python-docx |
 | Testing | pytest, pytest-asyncio |
 | Linting | Ruff |
+
+#### Frontend
+
+| Category | Technology |
+| :-- | :-- |
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS (custom Indigo design system) |
+| UI Components | Custom component library (Button, Input, Select, Textarea) |
+| State Management | React `useState` / `useRef` / `useCallback` |
+| API Client | `fetch` with typed `PatentGenerateRequest` / `PatentGenerateResponse` |
+| Linting | ESLint + Prettier |
 
 ---
 
@@ -184,15 +205,83 @@ Each pipeline stage is a standalone, independently testable service.
 
 ---
 
+## 7. Features: Implemented Screens
+
+The frontend implements a complete 5-screen user journey from problem input to downloadable patent draft.
+
+### Screen 1 — Landing Page (`/`)
+
+The entry point. Communicates the core value proposition and guides users to the two primary actions.
+
+- Hero section with service title and tagline
+- Two primary CTAs: **특허 생성하기** (Generate Patent) and **선행특허 검색** (Search Prior Art)
+- Highlights the TRIZ-based AI differentiation at a glance
+
+### Screen 2 — Input Screen (`/generate`)
+
+Where users describe their problem and configure the generation pipeline.
+
+- **Problem Description** — freeform textarea (required), min 1 character
+- **Technical Field** — dropdown selector (전자기기 / 소재 / 기계 / 화학 / 바이오 / 기타)
+- **Advanced Settings** — collapsible toggle exposing `max_evasion_attempts` (integer, 1–10, default 3)
+- Client-side validation with accessible error messages (`aria-invalid`, `role="alert"`)
+- Maps directly to `PatentGenerateRequest` — all fields forwarded to `POST /api/v1/patent/generate`
+
+### Screen 3 — Loading Screen (inline, `/generate`)
+
+Shown during the API call. Provides animated step-by-step progress feedback.
+
+| Step | Label |
+| :--: | :-- |
+| 1 | TRIZ 원리 분류 중... |
+| 2 | 선행특허 검색 중... |
+| 3 | 회피 설계 검토 중... |
+| 4 | 특허 초안 생성 중... |
+
+Steps advance on a 1.5s timer, completing when the API responds. Interval is ref-tracked and cleaned up on unmount.
+
+### Screen 4 — Result Screen (inline, `/generate`)
+
+Displays the full `PatentGenerateResponse` in a tabbed layout.
+
+**특허 초안 tab** — all 7 `PatentDraft` fields rendered:
+
+| Field | Korean Label |
+| :-- | :-- |
+| `title` | Displayed as page `<h1>` |
+| `abstract` | 요약 |
+| `background` | 기술적 배경 |
+| `problem_statement` | 해결 과제 |
+| `solution` | 해결 수단 |
+| `claims` | 청구항 (ordered list) |
+| `effects` | 발명의 효과 |
+
+**TRIZ 원리 tab** — grid of `TrizCard` components, one per principle returned.
+
+**선행특허 tab** — list of `PatentCard` components with similarity score badges.
+
+**DOCX Download** — `DownloadButton` extracts `draft_id` from `docx_download_url`, calls `GET /api/v1/patent/{draft_id}/docx`, triggers browser download via Blob URL.
+
+### Screen 5 — Search Screen (`/search`)
+
+Standalone prior art search, independent of the generation pipeline.
+
+- Keyword input mapped to `POST /api/v1/patent/search`
+- Results rendered as `PatentCard` list with similarity scores
+- Useful for quick novelty checks before full generation
+
+---
+
 ## Quick Start
 
 ### Prerequisites
 
 - Python 3.11+
+- Node.js 18+
 - OpenAI API key
 - KIPRISplus API key (issued via [Korea Public Data Portal](https://www.data.go.kr/))
 
-### Installation
+### Backend Installation
 
 ```bash
 git clone https://github.com/PatentTRIZbasedAI20260226110030/Patent-GPT.git
@@ -205,6 +294,15 @@ pip install -e ".[dev]"
 
 cp .env.example .env
 # Edit .env and fill in your API keys
+```
+
+### Frontend Installation
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+# Set NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 ### Environment Variables
@@ -231,13 +329,21 @@ python scripts/ingest_patents.py
 ### Run
 
 ```bash
+# Backend
 uvicorn app.main:app --reload
+
+# Frontend (separate terminal)
+cd frontend && npm run dev
 ```
 
 ### Test
 
 ```bash
+# Backend
 pytest
+
+# Frontend type-check
+cd frontend && npx tsc --noEmit
 ```
 
 ---
@@ -246,40 +352,63 @@ pytest
 
 ```text
 Patent-GPT/
+├── frontend/                         # Next.js 14 frontend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── page.tsx              # Screen 1: Landing
+│   │   │   ├── generate/page.tsx     # Screens 2–4: Input / Loading / Result
+│   │   │   └── search/page.tsx       # Screen 5: Prior Art Search
+│   │   ├── components/
+│   │   │   ├── PatentForm.tsx        # Input form with Advanced Settings toggle
+│   │   │   ├── LoadingSteps.tsx      # 4-step animated progress indicator
+│   │   │   ├── ResultPanel.tsx       # Tabbed result view (draft / TRIZ / patents)
+│   │   │   ├── DownloadButton.tsx    # DOCX download with Blob URL handling
+│   │   │   ├── PatentCard.tsx        # Similar patent card with similarity badge
+│   │   │   ├── TrizCard.tsx          # TRIZ principle card
+│   │   │   └── ui/                   # Base components: Button, Input, Select, Textarea
+│   │   ├── lib/
+│   │   │   ├── api.ts                # Typed API client (generatePatent, downloadDocx)
+│   │   │   └── utils.ts              # cn() Tailwind class utility
+│   │   └── types/
+│   │       └── patent.ts             # PatentGenerateRequest/Response, PatentDraft types
+│   ├── docs/
+│   │   ├── SCREEN_DEFINITION.md      # Screen definition spec (Figma reference)
+│   │   └── FIGMA_GUIDE.md            # Figma usage guide
+│   └── assets/                       # Design assets
 ├── app/
 │   ├── api/
 │   │   ├── routes/
-│   │   │   ├── admin.py          # Admin endpoints (ingest trigger)
-│   │   │   ├── health.py         # Health check endpoint
-│   │   │   └── patent.py         # Patent generation endpoints
+│   │   │   ├── admin.py              # Admin endpoints (ingest trigger)
+│   │   │   ├── health.py             # Health check endpoint
+│   │   │   └── patent.py             # Patent generation endpoints
 │   │   └── schemas/
-│   │       ├── request.py        # PatentGenerateRequest, PatentSearchRequest DTOs
-│   │       └── response.py       # PatentGenerateResponse, SimilarPatent DTOs
+│   │       ├── request.py            # PatentGenerateRequest, PatentSearchRequest DTOs
+│   │       └── response.py           # PatentGenerateResponse, SimilarPatent DTOs
 │   ├── models/
-│   │   ├── patent_draft.py       # PatentDraft domain model (KIPO format)
-│   │   ├── state.py              # LangGraph AgentState
-│   │   └── triz.py               # TRIZ principle model
+│   │   ├── patent_draft.py           # PatentDraft domain model (KIPO format)
+│   │   ├── state.py                  # LangGraph AgentState
+│   │   └── triz.py                   # TRIZ principle model
 │   ├── prompts/
-│   │   ├── classifier.py         # TRIZ classification few-shot prompts
-│   │   ├── evasion.py            # Evasion design prompts
-│   │   └── triz_expert.py        # TRIZ expert persona prompts
+│   │   ├── classifier.py             # TRIZ classification few-shot prompts
+│   │   ├── evasion.py                # Evasion design prompts
+│   │   └── triz_expert.py            # TRIZ expert persona prompts
 │   ├── services/
-│   │   ├── draft_generator.py    # Stage 4: Pydantic structured output + DOCX
-│   │   ├── patent_searcher.py    # Stage 2: BM25 + ChromaDB + Cross-Encoder
-│   │   ├── patent_service.py     # Orchestrator: wires all 4 stages
-│   │   ├── reasoning_agent.py    # Stage 3: LangGraph evasion loop
-│   │   └── triz_classifier.py    # Stage 1: LLM-based TRIZ routing
+│   │   ├── draft_generator.py        # Stage 4: Pydantic structured output + DOCX
+│   │   ├── patent_searcher.py        # Stage 2: BM25 + ChromaDB + Cross-Encoder
+│   │   ├── patent_service.py         # Orchestrator: wires all 4 stages
+│   │   ├── reasoning_agent.py        # Stage 3: LangGraph evasion loop
+│   │   └── triz_classifier.py        # Stage 1: LLM-based TRIZ routing
 │   ├── utils/
-│   │   ├── docx_exporter.py      # PatentDraft → DOCX export
-│   │   └── kipris_client.py      # KIPRISplus async API client
-│   ├── config.py                 # pydantic-settings env config
-│   └── main.py                   # FastAPI app entrypoint
+│   │   ├── docx_exporter.py          # PatentDraft → DOCX export
+│   │   └── kipris_client.py          # KIPRISplus async API client
+│   ├── config.py                     # pydantic-settings env config
+│   └── main.py                       # FastAPI app entrypoint
 ├── data/
-│   └── triz_principles.json      # 40 TRIZ inventive principles
+│   └── triz_principles.json          # 40 TRIZ inventive principles
 ├── scripts/
-│   └── ingest_patents.py         # KIPRISplus → ChromaDB batch ingestion
-├── tests/                        # Per-module unit tests
-├── wiki/                         # GitHub Wiki documents
+│   └── ingest_patents.py             # KIPRISplus → ChromaDB batch ingestion
+├── tests/                            # Per-module unit tests
+├── wiki/                             # GitHub Wiki documents
 ├── .env.example
 ├── pyproject.toml
 ├── CLAUDE.md
@@ -290,7 +419,7 @@ Patent-GPT/
 
 ## API
 
-> **API contract source of truth:** test-first contract in [`tests/test_patent_route.py`](tests/test_patent_route.py).  
+> **API contract source of truth:** test-first contract in [`tests/test_patent_route.py`](tests/test_patent_route.py).
 > This section follows test-verified behavior rather than documentation-only assumptions.
 
 ### `GET /api/v1/health`
@@ -326,9 +455,7 @@ Full 4-stage pipeline: TRIZ classification → prior art search → evasion loop
 **Validation failure case (matches route test):**
 
 ```json
-{
-  "problem_description": ""
-}
+{ "problem_description": "" }
 ```
 
 Expected: `422 Unprocessable Entity`
@@ -368,9 +495,7 @@ Standalone prior art search without full pipeline.
 **Minimal request body (matches route test):**
 
 ```json
-{
-  "query": "방열 구조"
-}
+{ "query": "방열 구조" }
 ```
 
 ### `POST /api/v1/admin/ingest`
@@ -387,6 +512,7 @@ Trigger patent ingestion from KIPRISplus into ChromaDB.
 | **v0.2.0 · Core Services** | TRIZ Classifier, KIPRISplus client, ingestion script, Hybrid Patent Searcher, Prompt Library | ✅ Done |
 | **v0.3.0 · Agent & Output** | LangGraph Reasoning Agent, Draft Generator (Pydantic + DOCX), PatentService orchestrator | ✅ Done |
 | **v0.4.0 · Ship** | Route wiring, Ruff linting, full test suite, smoke test | ✅ Done |
+| **v0.4.1 · Frontend** | Next.js 14 UI — 5 screens, full API integration, DOCX download, Advanced Settings | ✅ Done |
 | **v0.5.0 · Intelligence** | RAGAS evaluation, TRIZ Contradiction Matrix, conversation memory | 📋 Planned |
 
 ### MVP Scope Limitations
@@ -397,8 +523,8 @@ The initial MVP prioritizes **idea discovery + evaluation** quality. The followi
 - **TRIZ Contradiction Matrix** — Precise principle selection via parameter mapping
 - **Conversation memory** — Multi-turn stateful sessions
 - **Tool Calling** — TavilySearch / PythonREPL agent tools
-- **Frontend** — API-only MVP; no UI implemented
 - **HWP export** — DOCX only for now
+- **Attorney Matching** — Routing to patent attorneys based on idea domain (v1.0 target)
 
 ---
 
