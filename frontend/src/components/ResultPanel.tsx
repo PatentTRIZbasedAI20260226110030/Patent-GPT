@@ -64,21 +64,41 @@ export function ResultPanel({ data, onRegenerate }: ResultPanelProps) {
           <div className="space-y-6">
             <section>
               <h2 className="text-h3 text-text-primary mb-2">요약</h2>
-              <p className="text-body-m text-text-secondary">
+              <p className="text-body-m text-text-secondary leading-relaxed whitespace-pre-line">
                 {data.patent_draft.abstract}
+              </p>
+            </section>
+            <section>
+              <h2 className="text-h3 text-text-primary mb-2">기술적 배경</h2>
+              <p className="text-body-m text-text-secondary leading-relaxed whitespace-pre-line">
+                {data.patent_draft.background}
+              </p>
+            </section>
+            <section>
+              <h2 className="text-h3 text-text-primary mb-2">해결 과제</h2>
+              <p className="text-body-m text-text-secondary leading-relaxed whitespace-pre-line">
+                {data.patent_draft.problem_statement}
+              </p>
+            </section>
+            <section>
+              <h2 className="text-h3 text-text-primary mb-2">해결 수단</h2>
+              <p className="text-body-m text-text-secondary leading-relaxed whitespace-pre-line">
+                {data.patent_draft.solution}
               </p>
             </section>
             <section>
               <h2 className="text-h3 text-text-primary mb-2">청구항</h2>
               <ol className="list-decimal list-inside space-y-2 text-body-m text-text-secondary">
                 {data.patent_draft.claims.map((claim, i) => (
-                  <li key={i}>{claim}</li>
+                  <li key={i} className="leading-relaxed">
+                    {claim}
+                  </li>
                 ))}
               </ol>
             </section>
             <section>
               <h2 className="text-h3 text-text-primary mb-2">발명의 효과</h2>
-              <p className="text-body-m text-text-secondary">
+              <p className="text-body-m text-text-secondary leading-relaxed whitespace-pre-line">
                 {data.patent_draft.effects}
               </p>
             </section>

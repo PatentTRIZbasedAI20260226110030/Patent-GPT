@@ -7,7 +7,7 @@ import { LoadingSteps } from "@/components/LoadingSteps";
 import { ResultPanel } from "@/components/ResultPanel";
 import { Button } from "@/components/ui/button";
 import { generatePatent } from "@/lib/api";
-import type { PatentGenerateResponse } from "@/types/patent";
+import type { PatentGenerateRequest, PatentGenerateResponse } from "@/types/patent";
 
 type ViewState = "input" | "loading" | "result" | "error";
 
@@ -18,7 +18,7 @@ export default function GeneratePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = useCallback(
-    async (data: { problem_description: string; technical_field?: string }) => {
+    async (data: PatentGenerateRequest) => {
       setViewState("loading");
       setLoadingStep(0);
       setErrorMessage(null);
