@@ -32,7 +32,7 @@ export function DownloadButton({
       a.href = url;
       a.download = `patent_draft_${draftId}.docx`;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (err) {
       setError(err instanceof Error ? err.message : "다운로드에 실패했습니다.");
     } finally {

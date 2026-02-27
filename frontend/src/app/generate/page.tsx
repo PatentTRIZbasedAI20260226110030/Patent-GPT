@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { PatentForm } from "@/components/PatentForm";
 import { LoadingSteps } from "@/components/LoadingSteps";
@@ -16,6 +16,13 @@ export default function GeneratePage() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState<PatentGenerateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   const handleSubmit = useCallback(
     async (data: PatentGenerateRequest) => {
@@ -23,10 +30,10 @@ export default function GeneratePage() {
       setLoadingStep(0);
       setErrorMessage(null);
 
-      const interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         setLoadingStep((prev) => {
           if (prev >= 3) {
-            clearInterval(interval);
+            clearInterval(intervalRef.current!);
             return 3;
           }
           return prev + 1;
@@ -35,12 +42,12 @@ export default function GeneratePage() {
 
       try {
         const res = await generatePatent(data);
-        clearInterval(interval);
+        clearInterval(intervalRef.current!);
         setLoadingStep(4);
         setResult(res);
         setViewState("result");
       } catch (err) {
-        clearInterval(interval);
+        clearInterval(intervalRef.current!);
         setErrorMessage(
           err instanceof Error ? err.message : "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
         );
