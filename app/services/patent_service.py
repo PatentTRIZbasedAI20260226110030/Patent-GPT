@@ -4,7 +4,6 @@ from pathlib import Path
 from app.api.schemas.response import PatentGenerateResponse
 from app.config import Settings
 from app.models.state import AgentState
-from app.services.draft_generator import generate_draft
 from app.services.reasoning_agent import PatentPipeline
 
 logger = logging.getLogger(__name__)
@@ -35,6 +34,8 @@ class PatentService:
             "final_idea": "",
             "reasoning_trace": [],
             "current_step": "",
+            "patent_draft": None,
+            "docx_path": None,
         }
 
         original_max = self.settings.MAX_EVASION_ATTEMPTS
@@ -44,21 +45,11 @@ class PatentService:
         finally:
             self.settings.MAX_EVASION_ATTEMPTS = original_max
 
-        # Generate draft from final idea
-        triz_text = ", ".join(
-            f"#{p.number} {p.name_ko}({p.name_en})"
-            for p in final_state["triz_principles"]
-        )
-        draft, docx_path = await generate_draft(
-            idea=final_state["final_idea"],
-            problem_description=problem_description,
-            triz_principles_text=triz_text,
-            settings=self.settings,
-        )
+        docx_path = final_state.get("docx_path")
         draft_id = Path(docx_path).stem if docx_path else None
 
         return PatentGenerateResponse(
-            patent_draft=draft,
+            patent_draft=final_state["patent_draft"],
             triz_principles=final_state["triz_principles"],
             similar_patents=final_state["similar_patents"],
             reasoning_trace=final_state["reasoning_trace"],

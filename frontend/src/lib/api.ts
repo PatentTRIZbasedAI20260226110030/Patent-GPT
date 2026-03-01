@@ -70,7 +70,7 @@ export interface GenerateStreamEvent {
 export async function generatePatentStream(
   req: PatentGenerateRequest,
   onStep: (event: GenerateStreamEvent) => void
-): Promise<void> {
+): Promise<PatentGenerateResponse> {
   const url = `${BASE_URL}/api/v1/patent/generate/stream`;
   const res = await fetch(url, {
     method: "POST",
@@ -90,6 +90,7 @@ export async function generatePatentStream(
   let buffer = "";
   let currentEvent = "";
   let currentData = "";
+  let finalResponse: PatentGenerateResponse | null = null;
 
   const flushEvent = () => {
     if (currentEvent === "step" && currentData) {
@@ -98,6 +99,12 @@ export async function generatePatentStream(
         onStep(parsed);
       } catch {
         // Ignore malformed SSE chunks
+      }
+    } else if (currentEvent === "done" && currentData) {
+      try {
+        finalResponse = JSON.parse(currentData) as PatentGenerateResponse;
+      } catch {
+        // Ignore malformed done event
       }
     }
     currentEvent = "";
@@ -128,6 +135,11 @@ export async function generatePatentStream(
   }
 
   flushEvent();
+
+  if (!finalResponse) {
+    throw new ApiError("Stream ended without a final response", 0);
+  }
+  return finalResponse;
 }
 
 export async function searchPatent(

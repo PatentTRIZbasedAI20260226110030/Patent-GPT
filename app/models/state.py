@@ -1,6 +1,6 @@
 from typing import TypedDict
 
-from app.models.patent_draft import SimilarPatent
+from app.models.patent_draft import PatentDraft, SimilarPatent
 from app.models.triz import TRIZPrinciple
 
 
@@ -18,3 +18,5 @@ class AgentState(TypedDict):
     final_idea: str
     reasoning_trace: list[str]
     current_step: str
+    patent_draft: PatentDraft | None
+    docx_path: str | None

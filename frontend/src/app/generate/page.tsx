@@ -6,8 +6,19 @@ import { PatentForm } from "@/components/PatentForm";
 import { LoadingSteps } from "@/components/LoadingSteps";
 import { ResultPanel } from "@/components/ResultPanel";
 import { Button } from "@/components/ui/button";
-import { generatePatent } from "@/lib/api";
+import { generatePatentStream } from "@/lib/api";
 import type { PatentGenerateResponse } from "@/types/patent";
+
+const NODE_TO_STEP: Record<string, number> = {
+  classify_triz: 0,
+  search_internal: 1,
+  evaluate_context: 1,
+  search_kipris: 1,
+  generate_idea: 2,
+  evaluate_novelty: 2,
+  evade: 2,
+  draft_patent: 3,
+};
 
 type ViewState = "input" | "loading" | "result" | "error";
 
@@ -27,24 +38,15 @@ export default function GeneratePage() {
       setLoadingStep(0);
       setErrorMessage(null);
 
-      const interval = setInterval(() => {
-        setLoadingStep((prev) => {
-          if (prev >= 3) {
-            clearInterval(interval);
-            return 3;
-          }
-          return prev + 1;
-        });
-      }, 1500);
-
       try {
-        const res = await generatePatent(data);
-        clearInterval(interval);
+        const res = await generatePatentStream(data, (event) => {
+          const step = NODE_TO_STEP[event.step];
+          if (step !== undefined) setLoadingStep(step);
+        });
         setLoadingStep(4);
         setResult(res);
         setViewState("result");
       } catch (err) {
-        clearInterval(interval);
         setErrorMessage(
           err instanceof Error ? err.message : "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
         );

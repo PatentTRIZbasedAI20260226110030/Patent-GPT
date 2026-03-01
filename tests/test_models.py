@@ -43,7 +43,10 @@ def test_agent_state_keys():
         "final_idea": "",
         "reasoning_trace": [],
         "current_step": "",
+        "patent_draft": None,
+        "docx_path": None,
     }
     assert state["context_sufficient"] is False
     assert state["evasion_count"] == 0
     assert state["novelty_score"] == 0.0
+    assert state["patent_draft"] is None

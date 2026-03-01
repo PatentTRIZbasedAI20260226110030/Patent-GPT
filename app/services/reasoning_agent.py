@@ -262,6 +262,8 @@ class PatentPipeline:
         )
         return {
             "final_idea": state["current_idea"],
+            "patent_draft": draft,
+            "docx_path": docx_path,
             "current_step": "draft_patent",
             "reasoning_trace": state["reasoning_trace"] + ["[완료] 특허 명세서 초안 생성"],
         }

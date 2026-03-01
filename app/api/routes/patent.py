@@ -47,6 +47,7 @@ async def generate_patent(
 async def generate_patent_stream(
     request: PatentGenerateRequest,
     pipeline: PatentPipeline = Depends(get_pipeline),
+    settings: Settings = Depends(get_settings),
 ):
     """SSE endpoint that streams step-by-step LangGraph state updates."""
 
@@ -64,12 +65,15 @@ async def generate_patent_stream(
         "final_idea": "",
         "reasoning_trace": [],
         "current_step": "",
+        "patent_draft": None,
+        "docx_path": None,
     }
 
     async def event_generator():
+        accumulated = dict(initial_state)
         async for event in pipeline.stream(initial_state):
-            # LangGraph astream yields dicts keyed by node name
             for node_name, node_state in event.items():
+                accumulated.update(node_state)
                 yield {
                     "event": "step",
                     "data": json.dumps(
@@ -77,7 +81,26 @@ async def generate_patent_stream(
                         ensure_ascii=False,
                     ),
                 }
-        yield {"event": "done", "data": "{}"}
+
+        # Build final response from accumulated state
+        draft = accumulated.get("patent_draft")
+        docx_path = accumulated.get("docx_path")
+        draft_id = Path(docx_path).stem if docx_path else None
+        response = {
+            "patent_draft": draft.model_dump() if draft else None,
+            "triz_principles": [
+                p.model_dump() for p in accumulated.get("triz_principles", [])
+            ],
+            "similar_patents": [
+                p.model_dump() for p in accumulated.get("similar_patents", [])
+            ],
+            "reasoning_trace": accumulated.get("reasoning_trace", []),
+            "draft_id": draft_id,
+            "novelty_score": accumulated.get("novelty_score"),
+            "threshold": settings.SIMILARITY_THRESHOLD,
+            "docx_download_url": docx_path,
+        }
+        yield {"event": "done", "data": json.dumps(response, ensure_ascii=False)}
 
     return EventSourceResponse(event_generator())
 
