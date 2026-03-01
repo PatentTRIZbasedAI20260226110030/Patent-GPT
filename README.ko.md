@@ -103,17 +103,19 @@
 
 | 구분 | 기술 |
 | :-- | :-- |
-| 언어 | Python 3.11+ |
-| 프레임워크 | FastAPI, Uvicorn |
+| 언어 | Python 3.11+, TypeScript 5 |
+| 백엔드 | FastAPI, Uvicorn |
+| 프론트엔드 | Next.js 16, React 18, Tailwind CSS, Shadcn UI |
 | LLM 오케스트레이션 | LangChain, LangGraph |
-| LLM | OpenAI GPT-4o (생성), GPT-4o-mini (분류) |
+| LLM | Gemini 3.0 Flash (`langchain-google-genai`) |
 | 임베딩 | OpenAI text-embedding-3-small |
 | 벡터 DB | ChromaDB (로컬, in-process) |
 | 검색 | BM25 (rank-bm25) + Cross-Encoder (sentence-transformers) |
 | 특허 데이터 | KIPRISplus Open API |
 | 출력 | Pydantic Structured Output + python-docx |
+| 디자인 | Figma ([9화면 와이어프레임](https://www.figma.com/design/Fj1QMqY2ANhUoWriXxsiDA/Patent-GPT?node-id=2-688)) |
 | 테스트 | pytest, pytest-asyncio |
-| 린팅 | Ruff |
+| 린팅 | Ruff (백엔드), ESLint + Prettier (프론트엔드) |
 
 ---
 
@@ -227,10 +229,19 @@ CHROMA_PERSIST_DIR=./data/chromadb
 python scripts/ingest_patents.py
 ```
 
-### 실행
+### 백엔드 실행
 
 ```bash
 uvicorn app.main:app --reload
+```
+
+### 프론트엔드 실행
+
+```bash
+cd frontend
+npm install
+npm run dev
+# http://localhost:3000 에서 확인
 ```
 
 ### 테스트
@@ -245,45 +256,59 @@ pytest
 
 ```text
 Patent-GPT/
-├── frontend/
-│   ├── docs/
-│   │   ├── SCREEN_DEFINITION.md  # 화면 정의서 (Figma 디자인 참조)
-│   │   └── FIGMA_GUIDE.md        # Figma 활용 가이드
-│   └── assets/                   # 디자인 에셋 (Figma export 등)
-├── app/
+├── app/                            # 백엔드 (FastAPI)
 │   ├── api/
 │   │   ├── routes/
-│   │   │   ├── admin.py          # 관리자 엔드포인트 (데이터 적재 트리거)
-│   │   │   ├── health.py         # 헬스체크 엔드포인트
-│   │   │   └── patent.py         # 특허 생성 엔드포인트
+│   │   │   ├── admin.py            # 관리자 엔드포인트 (데이터 적재 트리거)
+│   │   │   ├── health.py           # 헬스체크 엔드포인트
+│   │   │   └── patent.py           # 특허 생성 엔드포인트
 │   │   └── schemas/
-│   │       ├── request.py        # PatentGenerateRequest, PatentSearchRequest DTO
-│   │       └── response.py       # PatentGenerateResponse, SimilarPatent DTO
+│   │       ├── request.py          # PatentGenerateRequest, PatentSearchRequest DTO
+│   │       └── response.py         # PatentGenerateResponse, SimilarPatent DTO
 │   ├── models/
-│   │   ├── patent_draft.py       # PatentDraft 도메인 모델 (KIPO 형식)
-│   │   ├── state.py              # LangGraph AgentState
-│   │   └── triz.py               # TRIZ 원리 모델
-│   ├── prompts/
-│   │   ├── classifier.py         # TRIZ 분류 Few-Shot 프롬프트
-│   │   ├── evasion.py            # 회피 설계 프롬프트
-│   │   └── triz_expert.py        # TRIZ 전문가 페르소나 프롬프트
+│   │   ├── patent_draft.py         # PatentDraft 도메인 모델 (KIPO 형식)
+│   │   ├── state.py                # LangGraph AgentState
+│   │   └── triz.py                 # TRIZ 원리 모델
+│   ├── prompts/                    # LLM 프롬프트 모음
 │   ├── services/
-│   │   ├── draft_generator.py    # Stage 4: Pydantic 구조화 출력 + DOCX
-│   │   ├── patent_searcher.py    # Stage 2: BM25 + ChromaDB + Cross-Encoder
-│   │   ├── patent_service.py     # 오케스트레이터: 4단계 파이프라인 연결
-│   │   ├── reasoning_agent.py    # Stage 3: LangGraph 회피 루프
-│   │   └── triz_classifier.py    # Stage 1: LLM 기반 TRIZ 라우팅
+│   │   ├── draft_generator.py      # Stage 4: Pydantic 구조화 출력 + DOCX
+│   │   ├── patent_searcher.py      # Stage 2: BM25 + ChromaDB + Cross-Encoder
+│   │   ├── patent_service.py       # 오케스트레이터: 전체 파이프라인 연결
+│   │   ├── reasoning_agent.py      # Stage 3: LangGraph 회피 루프
+│   │   └── triz_classifier.py      # Stage 1: LLM 기반 TRIZ 라우팅
 │   ├── utils/
-│   │   ├── docx_exporter.py      # PatentDraft → DOCX 변환
-│   │   └── kipris_client.py      # KIPRISplus 비동기 API 클라이언트
-│   ├── config.py                 # pydantic-settings 기반 환경 설정
-│   └── main.py                   # FastAPI 앱 엔트리포인트
+│   │   ├── docx_exporter.py        # PatentDraft → DOCX 변환
+│   │   └── kipris_client.py        # KIPRISplus 비동기 API 클라이언트
+│   ├── config.py                   # pydantic-settings 기반 환경 설정
+│   └── main.py                     # FastAPI 앱 엔트리포인트
+├── frontend/                       # 프론트엔드 (Next.js 16 + React 18)
+│   ├── src/
+│   │   ├── app/                    # Next.js App Router
+│   │   │   ├── page.tsx            # S-01 랜딩
+│   │   │   ├── generate/page.tsx   # S-02~04 생성 (입력/로딩/결과)
+│   │   │   └── search/page.tsx     # S-05 선행특허 검색
+│   │   ├── components/
+│   │   │   ├── ui/                 # Shadcn UI 기본 컴포넌트
+│   │   │   ├── PatentForm.tsx      # 문제 입력 폼
+│   │   │   ├── LoadingSteps.tsx    # 4단계 파이프라인 진행 표시
+│   │   │   ├── ResultPanel.tsx     # 생성 결과 표시
+│   │   │   ├── TrizCard.tsx        # TRIZ 원리 카드
+│   │   │   ├── PatentCard.tsx      # 유사 특허 카드
+│   │   │   └── DownloadButton.tsx  # DOCX 다운로드
+│   │   ├── lib/
+│   │   │   ├── api.ts              # 백엔드 API 클라이언트
+│   │   │   └── utils.ts            # 공유 유틸리티
+│   │   └── types/
+│   │       └── patent.ts           # TypeScript 타입 (백엔드 스키마 동기화)
+│   └── docs/
+│       ├── SCREEN_DEFINITION.md    # 화면별 상세 정의서
+│       ├── FIGMA_GUIDE.md          # Figma 디자인 시스템 가이드
+│       └── HANDOFF.md              # 작업 맥락 전달 문서
 ├── data/
-│   └── triz_principles.json      # TRIZ 40가지 발명 원리
+│   └── triz_principles.json        # TRIZ 40가지 발명 원리
 ├── scripts/
-│   └── ingest_patents.py         # KIPRISplus → ChromaDB 배치 적재
-├── tests/                        # 모듈별 단위 테스트
-├── wiki/                         # GitHub Wiki 문서
+│   └── ingest_patents.py           # KIPRISplus → ChromaDB 배치 적재
+├── tests/                          # 모듈별 단위 테스트
 ├── .env.example
 ├── pyproject.toml
 ├── CLAUDE.md
@@ -327,6 +352,8 @@ Patent-GPT/
 }
 ```
 
+`max_evasion_attempts` 범위: `1~5`
+
 **검증 실패 케이스 (route 테스트 기준):**
 
 ```json
@@ -353,9 +380,18 @@ Patent-GPT/
   "triz_principles": [...],
   "similar_patents": [...],
   "reasoning_trace": ["[아이디어 생성] ...", "[선행기술 조사] ...", "[완료] ..."],
+  "draft_id": "patent_draft_ab12cd34",
+  "novelty_score": 0.67,
+  "threshold": 0.5,
   "docx_download_url": "data/drafts/patent_draft_ab12cd34.docx"
 }
 ```
+
+`triz_principles[]`의 각 항목에는 UI 표시용 `matching_score`가 선택적으로 포함될 수 있습니다.
+
+### `POST /api/v1/patent/generate/stream`
+
+파이프라인 상태를 단계별로 전송하는 SSE 엔드포인트입니다.
 
 ### `GET /api/v1/patent/{draft_id}/docx`
 
@@ -377,6 +413,8 @@ Patent-GPT/
 }
 ```
 
+선택 요청 필드: `top_k` (`1~50`, 기본값 `5`)
+
 ### `POST /api/v1/admin/ingest`
 
 KIPRISplus에서 ChromaDB로 특허 데이터 적재를 트리거합니다.
@@ -391,7 +429,20 @@ KIPRISplus에서 ChromaDB로 특허 데이터 적재를 트리거합니다.
 | **v0.2.0 · Core Services** | TRIZ 분류기, KIPRISplus 클라이언트, 적재 스크립트, 하이브리드 특허 검색기, 프롬프트 라이브러리 | ✅ 완료 |
 | **v0.3.0 · Agent & Output** | LangGraph 추론 에이전트, 초안 생성기(Pydantic + DOCX), PatentService 오케스트레이터 | ✅ 완료 |
 | **v0.4.0 · Ship** | 라우트 연결, Ruff 린팅, 전체 테스트 스위트, 스모크 테스트 | ✅ 완료 |
-| **v0.5.0 · Intelligence** | RAGAS 평가, TRIZ 모순 행렬, 대화 메모리(맥락 기억) | 📋 예정 |
+| **v0.5.0 · UI/UX** | Figma 9화면 와이어프레임, Next.js 프론트엔드 스캐폴드, 컴포넌트 라이브러리, API 클라이언트 | ✅ 완료 |
+| **v0.6.0 · Integration** | SSE 스트리밍 엔드포인트, 프론트-백엔드 API 정합, E2E 플로우 | 🚧 진행 중 |
+| **v0.7.0 · Intelligence** | RAGAS 평가, TRIZ 모순 행렬, 대화 메모리(맥락 기억) | 📋 예정 |
+
+### UI/UX 디자인
+
+전체 사용자 플로우를 다루는 9화면 와이어프레임:
+
+```
+랜딩 → 문제 입력 → 분석 로딩 → TRIZ 결과 → 유사 특허 → 회피 설계 → 특허 초안 → 다운로드 | 빠른 검색
+```
+
+- **Figma:** [Patent-GPT 와이어프레임](https://www.figma.com/design/Fj1QMqY2ANhUoWriXxsiDA/Patent-GPT?node-id=2-688)
+- **프로토타입:** [CodeSandbox](https://codesandbox.io/p/sandbox/mlc68g)
 
 ### MVP 범위 제한 사항
 
@@ -401,7 +452,6 @@ KIPRISplus에서 ChromaDB로 특허 데이터 적재를 트리거합니다.
 - **TRIZ 모순 행렬** — 개선/악화 파라미터 매핑을 통한 정밀 원리 선택
 - **맥락 기억** — 멀티턴 대화 세션 상태 유지
 - **Tool Calling** — TavilySearch / PythonREPL 도구 호출
-- **프론트엔드** — API 전용 MVP; UI 미구현
 - **HWP 출력** — 현재 DOCX만 지원
 
 ---

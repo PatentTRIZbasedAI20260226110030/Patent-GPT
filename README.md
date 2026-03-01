@@ -103,17 +103,19 @@ Keyword Input → Patent Idea Generation → Patent Value Assessment
 
 | Category | Technology |
 | :-- | :-- |
-| Language | Python 3.11+ |
-| Framework | FastAPI, Uvicorn |
+| Language | Python 3.11+, TypeScript 5 |
+| Backend | FastAPI, Uvicorn |
+| Frontend | Next.js 16, React 18, Tailwind CSS, Shadcn UI |
 | LLM Orchestration | LangChain, LangGraph |
-| LLM | OpenAI GPT-4o (generation), GPT-4o-mini (classification) |
+| LLM | Gemini 3.0 Flash (via `langchain-google-genai`) |
 | Embeddings | OpenAI text-embedding-3-small |
 | Vector DB | ChromaDB (local, in-process) |
 | Search | BM25 (rank-bm25) + Cross-Encoder (sentence-transformers) |
 | Patent Data | KIPRISplus Open API |
 | Output | Pydantic Structured Output + python-docx |
+| Design | Figma ([9-screen wireframe](https://www.figma.com/design/Fj1QMqY2ANhUoWriXxsiDA/Patent-GPT?node-id=2-688)) |
 | Testing | pytest, pytest-asyncio |
-| Linting | Ruff |
+| Linting | Ruff (backend), ESLint + Prettier (frontend) |
 
 ---
 
@@ -228,10 +230,19 @@ CHROMA_PERSIST_DIR=./data/chromadb
 python scripts/ingest_patents.py
 ```
 
-### Run
+### Run Backend
 
 ```bash
 uvicorn app.main:app --reload
+```
+
+### Run Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+# Open http://localhost:3000
 ```
 
 ### Test
@@ -246,40 +257,59 @@ pytest
 
 ```text
 Patent-GPT/
-├── app/
+├── app/                            # Backend (FastAPI)
 │   ├── api/
 │   │   ├── routes/
-│   │   │   ├── admin.py          # Admin endpoints (ingest trigger)
-│   │   │   ├── health.py         # Health check endpoint
-│   │   │   └── patent.py         # Patent generation endpoints
+│   │   │   ├── admin.py            # Admin endpoints (ingest trigger)
+│   │   │   ├── health.py           # Health check endpoint
+│   │   │   └── patent.py           # Patent generation endpoints
 │   │   └── schemas/
-│   │       ├── request.py        # PatentGenerateRequest, PatentSearchRequest DTOs
-│   │       └── response.py       # PatentGenerateResponse, SimilarPatent DTOs
+│   │       ├── request.py          # PatentGenerateRequest, PatentSearchRequest DTOs
+│   │       └── response.py         # PatentGenerateResponse, SimilarPatent DTOs
 │   ├── models/
-│   │   ├── patent_draft.py       # PatentDraft domain model (KIPO format)
-│   │   ├── state.py              # LangGraph AgentState
-│   │   └── triz.py               # TRIZ principle model
-│   ├── prompts/
-│   │   ├── classifier.py         # TRIZ classification few-shot prompts
-│   │   ├── evasion.py            # Evasion design prompts
-│   │   └── triz_expert.py        # TRIZ expert persona prompts
+│   │   ├── patent_draft.py         # PatentDraft domain model (KIPO format)
+│   │   ├── state.py                # LangGraph AgentState
+│   │   └── triz.py                 # TRIZ principle model
+│   ├── prompts/                    # Centralized LLM prompts
 │   ├── services/
-│   │   ├── draft_generator.py    # Stage 4: Pydantic structured output + DOCX
-│   │   ├── patent_searcher.py    # Stage 2: BM25 + ChromaDB + Cross-Encoder
-│   │   ├── patent_service.py     # Orchestrator: wires all 4 stages
-│   │   ├── reasoning_agent.py    # Stage 3: LangGraph evasion loop
-│   │   └── triz_classifier.py    # Stage 1: LLM-based TRIZ routing
+│   │   ├── draft_generator.py      # Stage 4: Pydantic structured output + DOCX
+│   │   ├── patent_searcher.py      # Stage 2: BM25 + ChromaDB + Cross-Encoder
+│   │   ├── patent_service.py       # Orchestrator: wires all stages
+│   │   ├── reasoning_agent.py      # Stage 3: LangGraph evasion loop
+│   │   └── triz_classifier.py      # Stage 1: LLM-based TRIZ routing
 │   ├── utils/
-│   │   ├── docx_exporter.py      # PatentDraft → DOCX export
-│   │   └── kipris_client.py      # KIPRISplus async API client
-│   ├── config.py                 # pydantic-settings env config
-│   └── main.py                   # FastAPI app entrypoint
+│   │   ├── docx_exporter.py        # PatentDraft → DOCX export
+│   │   └── kipris_client.py        # KIPRISplus async API client
+│   ├── config.py                   # pydantic-settings env config
+│   └── main.py                     # FastAPI app entrypoint
+├── frontend/                       # Frontend (Next.js 16 + React 18)
+│   ├── src/
+│   │   ├── app/                    # Next.js App Router
+│   │   │   ├── page.tsx            # S-01 Landing
+│   │   │   ├── generate/page.tsx   # S-02~04 Generate (input/loading/result)
+│   │   │   └── search/page.tsx     # S-05 Prior art search
+│   │   ├── components/
+│   │   │   ├── ui/                 # Shadcn UI primitives
+│   │   │   ├── PatentForm.tsx      # Problem input form
+│   │   │   ├── LoadingSteps.tsx    # 4-stage pipeline progress
+│   │   │   ├── ResultPanel.tsx     # Generation result display
+│   │   │   ├── TrizCard.tsx        # TRIZ principle card
+│   │   │   ├── PatentCard.tsx      # Similar patent card
+│   │   │   └── DownloadButton.tsx  # DOCX download trigger
+│   │   ├── lib/
+│   │   │   ├── api.ts              # Backend API client
+│   │   │   └── utils.ts            # Shared utilities
+│   │   └── types/
+│   │       └── patent.ts           # TypeScript types (synced with backend schemas)
+│   └── docs/
+│       ├── SCREEN_DEFINITION.md    # Screen-by-screen UI specification
+│       ├── FIGMA_GUIDE.md          # Figma design system guide
+│       └── HANDOFF.md              # Context handoff document
 ├── data/
-│   └── triz_principles.json      # 40 TRIZ inventive principles
+│   └── triz_principles.json        # 40 TRIZ inventive principles
 ├── scripts/
-│   └── ingest_patents.py         # KIPRISplus → ChromaDB batch ingestion
-├── tests/                        # Per-module unit tests
-├── wiki/                         # GitHub Wiki documents
+│   └── ingest_patents.py           # KIPRISplus → ChromaDB batch ingestion
+├── tests/                          # Per-module unit tests
 ├── .env.example
 ├── pyproject.toml
 ├── CLAUDE.md
@@ -323,6 +353,8 @@ Full 4-stage pipeline: TRIZ classification → prior art search → evasion loop
 }
 ```
 
+`max_evasion_attempts` range: `1~5`
+
 **Validation failure case (matches route test):**
 
 ```json
@@ -349,9 +381,18 @@ Expected: `422 Unprocessable Entity`
   "triz_principles": [...],
   "similar_patents": [...],
   "reasoning_trace": ["[아이디어 생성] ...", "[선행기술 조사] ...", "[완료] ..."],
+  "draft_id": "patent_draft_ab12cd34",
+  "novelty_score": 0.67,
+  "threshold": 0.5,
   "docx_download_url": "data/drafts/patent_draft_ab12cd34.docx"
 }
 ```
+
+`triz_principles[]` items optionally include `matching_score` for UI percentage display.
+
+### `POST /api/v1/patent/generate/stream`
+
+SSE endpoint for step-by-step pipeline state updates.
 
 ### `GET /api/v1/patent/{draft_id}/docx`
 
@@ -373,6 +414,8 @@ Standalone prior art search without full pipeline.
 }
 ```
 
+Optional request field: `top_k` (`1~50`, default `5`)
+
 ### `POST /api/v1/admin/ingest`
 
 Trigger patent ingestion from KIPRISplus into ChromaDB.
@@ -387,7 +430,20 @@ Trigger patent ingestion from KIPRISplus into ChromaDB.
 | **v0.2.0 · Core Services** | TRIZ Classifier, KIPRISplus client, ingestion script, Hybrid Patent Searcher, Prompt Library | ✅ Done |
 | **v0.3.0 · Agent & Output** | LangGraph Reasoning Agent, Draft Generator (Pydantic + DOCX), PatentService orchestrator | ✅ Done |
 | **v0.4.0 · Ship** | Route wiring, Ruff linting, full test suite, smoke test | ✅ Done |
-| **v0.5.0 · Intelligence** | RAGAS evaluation, TRIZ Contradiction Matrix, conversation memory | 📋 Planned |
+| **v0.5.0 · UI/UX** | Figma 9-screen wireframe, Next.js frontend scaffold, component library, API client | ✅ Done |
+| **v0.6.0 · Integration** | SSE streaming endpoint, frontend-backend API alignment, E2E flow | 🚧 In Progress |
+| **v0.7.0 · Intelligence** | RAGAS evaluation, TRIZ Contradiction Matrix, conversation memory | 📋 Planned |
+
+### UI/UX Design
+
+9-screen wireframe covering the full user flow:
+
+```
+Landing → Problem Input → Analysis Loading → TRIZ Results → Similar Patents → Evasion Design → Patent Draft → Download | Quick Search
+```
+
+- **Figma:** [Patent-GPT Wireframe](https://www.figma.com/design/Fj1QMqY2ANhUoWriXxsiDA/Patent-GPT?node-id=2-688)
+- **Prototype:** [CodeSandbox](https://codesandbox.io/p/sandbox/mlc68g)
 
 ### MVP Scope Limitations
 
@@ -397,7 +453,6 @@ The initial MVP prioritizes **idea discovery + evaluation** quality. The followi
 - **TRIZ Contradiction Matrix** — Precise principle selection via parameter mapping
 - **Conversation memory** — Multi-turn stateful sessions
 - **Tool Calling** — TavilySearch / PythonREPL agent tools
-- **Frontend** — API-only MVP; no UI implemented
 - **HWP export** — DOCX only for now
 
 ---

@@ -62,6 +62,74 @@ export async function generatePatent(
   });
 }
 
+export interface GenerateStreamEvent {
+  step: string;
+  state: Record<string, unknown>;
+}
+
+export async function generatePatentStream(
+  req: PatentGenerateRequest,
+  onStep: (event: GenerateStreamEvent) => void
+): Promise<void> {
+  const url = `${BASE_URL}/api/v1/patent/generate/stream`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
+
+  if (!res.ok || !res.body) {
+    throw new ApiError(
+      `Stream API Error: ${res.status} ${res.statusText}`,
+      res.status
+    );
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let currentEvent = "";
+  let currentData = "";
+
+  const flushEvent = () => {
+    if (currentEvent === "step" && currentData) {
+      try {
+        const parsed = JSON.parse(currentData) as GenerateStreamEvent;
+        onStep(parsed);
+      } catch {
+        // Ignore malformed SSE chunks
+      }
+    }
+    currentEvent = "";
+    currentData = "";
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      if (!line) {
+        flushEvent();
+        continue;
+      }
+      if (line.startsWith("event:")) {
+        currentEvent = line.replace("event:", "").trim();
+      } else if (line.startsWith("data:")) {
+        const dataLine = line.replace("data:", "").trim();
+        currentData = currentData ? `${currentData}\n${dataLine}` : dataLine;
+      }
+    }
+  }
+
+  flushEvent();
+}
+
 export async function searchPatent(
   req: PatentSearchRequest
 ): Promise<PatentSearchResponse> {
@@ -76,6 +144,14 @@ export function extractDraftIdFromUrl(url: string | null): string | null {
   if (!url) return null;
   const match = url.match(/\/([^/]+)\.docx$/);
   return match ? match[1] : null;
+}
+
+export function resolveDraftId(
+  draftId: string | null,
+  docxDownloadUrl: string | null
+): string | null {
+  if (draftId) return draftId;
+  return extractDraftIdFromUrl(docxDownloadUrl);
 }
 
 export async function downloadDocx(draftId: string): Promise<Blob> {

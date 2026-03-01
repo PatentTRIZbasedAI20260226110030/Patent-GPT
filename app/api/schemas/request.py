@@ -9,7 +9,7 @@ class PatentGenerateRequest(BaseModel):
         default=None, description="기술 분야 (예: 전자기기, 의료기기)"
     )
     max_evasion_attempts: int = Field(
-        default=3, ge=1, le=10, description="최대 회피 설계 시도 횟수"
+        default=3, ge=1, le=5, description="최대 회피 설계 시도 횟수"
     )
 
 

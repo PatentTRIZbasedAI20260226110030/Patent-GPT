@@ -16,14 +16,21 @@ function getScoreColor(score: number) {
 
 export function PatentCard({ patent, className }: PatentCardProps) {
   const scorePercent = Math.round(patent.similarity_score * 100);
+  const isHighSimilarity = patent.similarity_score >= 0.8;
 
   return (
     <div
       className={cn(
-        "rounded-card border border-border bg-bg-surface p-5",
+        "rounded-card border bg-bg-surface p-5",
+        isHighSimilarity ? "border-warning" : "border-border",
         className
       )}
     >
+      {isHighSimilarity && (
+        <div className="mb-3 inline-flex rounded-full bg-warning/10 text-warning text-caption px-2 py-1">
+          유사도 경고
+        </div>
+      )}
       <h3 className="text-body-l text-text-primary font-medium mb-2 line-clamp-2">
         {patent.title}
       </h3>

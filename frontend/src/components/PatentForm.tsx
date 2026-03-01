@@ -19,6 +19,7 @@ interface PatentFormProps {
   onSubmit: (data: {
     problem_description: string;
     technical_field?: string;
+    max_evasion_attempts?: number;
   }) => void;
   isLoading?: boolean;
 }
@@ -26,6 +27,7 @@ interface PatentFormProps {
 export function PatentForm({ onSubmit, isLoading }: PatentFormProps) {
   const [problemDescription, setProblemDescription] = useState("");
   const [technicalField, setTechnicalField] = useState("");
+  const [maxEvasionAttempts, setMaxEvasionAttempts] = useState(3);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,6 +43,7 @@ export function PatentForm({ onSubmit, isLoading }: PatentFormProps) {
     onSubmit({
       problem_description: trimmed,
       technical_field: technicalField || undefined,
+      max_evasion_attempts: maxEvasionAttempts,
     });
   };
 
@@ -85,6 +88,27 @@ export function PatentForm({ onSubmit, isLoading }: PatentFormProps) {
           {TECHNICAL_FIELDS.map((opt) => (
             <option key={opt.value || "empty"} value={opt.value}>
               {opt.label}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div>
+        <label
+          htmlFor="max_evasion_attempts"
+          className="block text-label text-text-secondary mb-2"
+        >
+          최대 회피설계 횟수
+        </label>
+        <Select
+          id="max_evasion_attempts"
+          value={String(maxEvasionAttempts)}
+          onChange={(e) => setMaxEvasionAttempts(Number(e.target.value))}
+          disabled={isLoading}
+        >
+          {[1, 2, 3, 4, 5].map((attempt) => (
+            <option key={attempt} value={attempt}>
+              {attempt}회
             </option>
           ))}
         </Select>

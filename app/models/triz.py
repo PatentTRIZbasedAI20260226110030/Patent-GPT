@@ -9,6 +9,7 @@ class TRIZPrinciple(BaseModel):
     name_en: str
     name_ko: str
     description: str
+    matching_score: float | None = None
 
 
 def load_triz_principles() -> list[TRIZPrinciple]:

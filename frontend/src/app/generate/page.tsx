@@ -18,7 +18,11 @@ export default function GeneratePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = useCallback(
-    async (data: { problem_description: string; technical_field?: string }) => {
+    async (data: {
+      problem_description: string;
+      technical_field?: string;
+      max_evasion_attempts?: number;
+    }) => {
       setViewState("loading");
       setLoadingStep(0);
       setErrorMessage(null);
@@ -85,7 +89,7 @@ export default function GeneratePage() {
               </p>
             </div>
             <div className="max-w-[680px] mx-auto rounded-card border border-border bg-bg-surface p-6 md:p-8">
-              <PatentForm onSubmit={handleSubmit} />
+              <PatentForm onSubmit={handleSubmit} isLoading={false} />
             </div>
           </>
         )}
@@ -96,7 +100,7 @@ export default function GeneratePage() {
               AI가 분석 중입니다...
             </h2>
             <p className="text-body-m text-text-muted mb-12">
-              잠시만 기다려주세요
+              4단계 파이프라인을 순차 실행합니다
             </p>
             <LoadingSteps currentStep={loadingStep} />
           </div>

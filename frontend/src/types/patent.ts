@@ -21,6 +21,7 @@ export interface TrizPrinciple {
   name_en?: string;
   name_ko: string;
   description: string;
+  matching_score?: number;
 }
 
 export interface SimilarPatent {
@@ -35,6 +36,9 @@ export interface PatentGenerateResponse {
   triz_principles: TrizPrinciple[];
   similar_patents: SimilarPatent[];
   reasoning_trace: string[];
+  draft_id: string | null;
+  novelty_score: number | null;
+  threshold: number | null;
   docx_download_url: string | null;
 }
 
