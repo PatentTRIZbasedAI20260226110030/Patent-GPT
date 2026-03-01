@@ -1,6 +1,5 @@
 import logging
 
-from langchain_classic.retrievers import EnsembleRetriever
 from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
@@ -64,22 +63,15 @@ class PatentSearcher:
             return []
 
         bm25_docs = [
-            Document(
-                page_content=doc,
-                metadata=meta,
-            )
+            Document(page_content=doc, metadata=meta)
             for doc, meta in zip(all_docs["documents"], all_docs["metadatas"])
         ]
         sparse_retriever = BM25Retriever.from_documents(bm25_docs, k=retrieval_k)
 
-        # Ensemble (hybrid) retriever
-        ensemble = EnsembleRetriever(
-            retrievers=[dense_retriever, sparse_retriever],
-            weights=[0.5, 0.5],
-        )
-
-        # Retrieve candidates
-        candidates = await ensemble.ainvoke(query)
+        # Retrieve candidates from both retrievers
+        candidates = await dense_retriever.ainvoke(query)
+        bm25_results = sparse_retriever.invoke(query)
+        candidates.extend(bm25_results)
 
         if not candidates:
             return []

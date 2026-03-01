@@ -3,7 +3,7 @@ import uuid
 from pathlib import Path
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config import Settings
 from app.models.patent_draft import PatentDraft
@@ -36,46 +36,43 @@ DRAFT_HUMAN = """발명 아이디어:
 - effects: 발명의 효과"""
 
 
-class DraftGenerator:
-    def __init__(self, settings: Settings):
-        self.settings = settings
-        self.llm = ChatOpenAI(
-            model=settings.LLM_MODEL,
-            api_key=settings.OPENAI_API_KEY,
-            temperature=0.3,
-        ).with_structured_output(PatentDraft)
-        self.prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", DRAFT_SYSTEM),
-                ("human", DRAFT_HUMAN),
-            ]
-        )
-        self.output_dir = Path("data/drafts")
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+async def generate_draft(
+    idea: str,
+    problem_description: str,
+    triz_principles_text: str,
+    settings: Settings,
+) -> tuple[PatentDraft, str | None]:
+    """Generate a structured patent draft + DOCX using Gemini."""
+    llm = ChatGoogleGenerativeAI(
+        model=settings.GEMINI_MODEL,
+        google_api_key=settings.GOOGLE_API_KEY,
+        temperature=0.3,
+    ).with_structured_output(PatentDraft)
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", DRAFT_SYSTEM),
+            ("human", DRAFT_HUMAN),
+        ]
+    )
+    chain = prompt | llm
+    draft = await chain.ainvoke(
+        {
+            "idea": idea,
+            "problem_description": problem_description,
+            "triz_principles": triz_principles_text,
+        }
+    )
 
-    async def generate(
-        self,
-        idea: str,
-        problem_description: str,
-        triz_principles_text: str,
-    ) -> tuple[PatentDraft, str | None]:
-        chain = self.prompt | self.llm
-        draft = await chain.ainvoke(
-            {
-                "idea": idea,
-                "problem_description": problem_description,
-                "triz_principles": triz_principles_text,
-            }
-        )
+    # Export to DOCX
+    output_dir = Path("data/drafts")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    docx_path = None
+    try:
+        filename = f"patent_draft_{uuid.uuid4().hex[:8]}.docx"
+        docx_path = str(output_dir / filename)
+        export_to_docx(draft, docx_path)
+        logger.info(f"DOCX exported to {docx_path}")
+    except Exception as e:
+        logger.error(f"Failed to export DOCX: {e}")
 
-        # Export to DOCX
-        docx_path = None
-        try:
-            filename = f"patent_draft_{uuid.uuid4().hex[:8]}.docx"
-            docx_path = str(self.output_dir / filename)
-            export_to_docx(draft, docx_path)
-            logger.info(f"DOCX exported to {docx_path}")
-        except Exception as e:
-            logger.error(f"Failed to export DOCX: {e}")
-
-        return draft, docx_path
+    return draft, docx_path
