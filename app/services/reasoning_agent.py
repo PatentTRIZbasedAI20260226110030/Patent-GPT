@@ -1,76 +1,178 @@
+import json
 import logging
 from typing import Any
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, StateGraph
 
 from app.config import Settings
 from app.models.state import AgentState
+from app.prompts.crag import CRAG_EVALUATION_HUMAN, CRAG_EVALUATION_SYSTEM
 from app.prompts.evasion import EVASION_HUMAN, EVASION_SYSTEM
+from app.prompts.novelty import NOVELTY_EVALUATION_HUMAN, NOVELTY_EVALUATION_SYSTEM
 from app.prompts.triz_expert import TRIZ_EXPERT_SYSTEM, TRIZ_IDEA_GENERATION_HUMAN
 from app.services.patent_searcher import PatentSearcher
+from app.services.triz_classifier import classify_triz
+from app.utils.kipris_client import KIPRISClient
 
 logger = logging.getLogger(__name__)
 
 
-def should_evade(state: dict[str, Any], threshold: float, max_attempts: int) -> bool:
-    return state["max_similarity_score"] > threshold and state["evasion_count"] < max_attempts
+def route_after_evaluate_novelty(
+    state: dict[str, Any], threshold: float, max_attempts: int
+) -> str:
+    """Route after novelty evaluation: novel → draft, not novel → evade or draft."""
+    if state["novelty_score"] >= threshold:
+        return "draft_patent"
+    if state["evasion_count"] >= max_attempts:
+        return "draft_patent"
+    return "evade"
 
 
-class ReasoningAgent:
-    def __init__(self, settings: Settings, patent_searcher: PatentSearcher):
+def route_after_evaluate_context(state: dict[str, Any]) -> str:
+    """Route after CRAG context evaluation: sufficient → generate, insufficient → kipris."""
+    if state["context_sufficient"]:
+        return "generate_idea"
+    return "search_kipris"
+
+
+class PatentPipeline:
+    """Full patent generation pipeline as a LangGraph StateGraph."""
+
+    def __init__(self, settings: Settings):
         self.settings = settings
-        self.patent_searcher = patent_searcher
-        self.llm = ChatOpenAI(
-            model=settings.LLM_MODEL,
-            api_key=settings.OPENAI_API_KEY,
+        self.llm = ChatGoogleGenerativeAI(
+            model=settings.GEMINI_MODEL,
+            google_api_key=settings.GOOGLE_API_KEY,
             temperature=0.7,
         )
+        self.patent_searcher = PatentSearcher(settings)
+        self.kipris_client = KIPRISClient(settings)
+
+        # Prompts
         self.idea_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", TRIZ_EXPERT_SYSTEM),
-                ("human", TRIZ_IDEA_GENERATION_HUMAN),
-            ]
+            [("system", TRIZ_EXPERT_SYSTEM), ("human", TRIZ_IDEA_GENERATION_HUMAN)]
         )
         self.evasion_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", EVASION_SYSTEM),
-                ("human", EVASION_HUMAN),
-            ]
+            [("system", EVASION_SYSTEM), ("human", EVASION_HUMAN)]
         )
+        self.novelty_prompt = ChatPromptTemplate.from_messages(
+            [("system", NOVELTY_EVALUATION_SYSTEM), ("human", NOVELTY_EVALUATION_HUMAN)]
+        )
+        self.crag_prompt = ChatPromptTemplate.from_messages(
+            [("system", CRAG_EVALUATION_SYSTEM), ("human", CRAG_EVALUATION_HUMAN)]
+        )
+
         self.graph = self._build_graph()
 
     def _build_graph(self) -> StateGraph:
         graph = StateGraph(AgentState)
 
+        graph.add_node("classify_triz", self._classify_triz_node)
+        graph.add_node("search_internal", self._search_internal_node)
+        graph.add_node("evaluate_context", self._evaluate_context_node)
+        graph.add_node("search_kipris", self._search_kipris_node)
         graph.add_node("generate_idea", self._generate_idea_node)
-        graph.add_node("search_prior_art", self._search_prior_art_node)
-        graph.add_node("evaluate", self._evaluate_node)
+        graph.add_node("evaluate_novelty", self._evaluate_novelty_node)
         graph.add_node("evade", self._evade_node)
-        graph.add_node("finalize", self._finalize_node)
+        graph.add_node("draft_patent", self._draft_patent_node)
 
-        graph.set_entry_point("generate_idea")
-        graph.add_edge("generate_idea", "search_prior_art")
-        graph.add_edge("search_prior_art", "evaluate")
+        graph.set_entry_point("classify_triz")
+        graph.add_edge("classify_triz", "search_internal")
+        graph.add_edge("search_internal", "evaluate_context")
         graph.add_conditional_edges(
-            "evaluate",
-            self._route_after_evaluate,
-            {"evade": "evade", "finalize": "finalize"},
+            "evaluate_context",
+            route_after_evaluate_context,
+            {"generate_idea": "generate_idea", "search_kipris": "search_kipris"},
         )
-        graph.add_edge("evade", "search_prior_art")
-        graph.add_edge("finalize", END)
+        graph.add_edge("search_kipris", "generate_idea")
+        graph.add_edge("generate_idea", "evaluate_novelty")
+        graph.add_conditional_edges(
+            "evaluate_novelty",
+            lambda state: route_after_evaluate_novelty(
+                state,
+                threshold=self.settings.SIMILARITY_THRESHOLD,
+                max_attempts=self.settings.MAX_EVASION_ATTEMPTS,
+            ),
+            {"draft_patent": "draft_patent", "evade": "evade"},
+        )
+        graph.add_edge("evade", "search_internal")
+        graph.add_edge("draft_patent", END)
 
         return graph.compile()
 
-    def _route_after_evaluate(self, state: AgentState) -> str:
-        if should_evade(
-            state,
-            threshold=self.settings.SIMILARITY_THRESHOLD,
-            max_attempts=self.settings.MAX_EVASION_ATTEMPTS,
-        ):
-            return "evade"
-        return "finalize"
+    # ── Node implementations ──────────────────────────────────────
+
+    async def _classify_triz_node(self, state: AgentState) -> dict:
+        principles = await classify_triz(
+            state["user_problem"], state["technical_field"], self.settings
+        )
+        return {
+            "triz_principles": principles,
+            "current_step": "classify_triz",
+            "reasoning_trace": state["reasoning_trace"]
+            + [f"[TRIZ 분류] {len(principles)}개 원리 선정"],
+        }
+
+    async def _search_internal_node(self, state: AgentState) -> dict:
+        query = state["user_problem"]
+        if state["current_idea"]:
+            query = f"{query} {state['current_idea'][:200]}"
+        results = await self.patent_searcher.search(query)
+        max_score = max((p.similarity_score for p in results), default=0.0)
+        return {
+            "similar_patents": results,
+            "max_similarity_score": max_score,
+            "current_step": "search_internal",
+            "reasoning_trace": state["reasoning_trace"]
+            + [f"[내부 검색] {len(results)}건 검색, 최대 유사도: {max_score:.1%}"],
+        }
+
+    async def _evaluate_context_node(self, state: AgentState) -> dict:
+        results = state["similar_patents"]
+        # Quick check: if fewer than 3 results, context is insufficient
+        if len(results) < 3:
+            return {
+                "context_sufficient": False,
+                "current_step": "evaluate_context",
+                "reasoning_trace": state["reasoning_trace"]
+                + [f"[CRAG 평가] 검색 결과 {len(results)}건 < 3건 → 외부 검색 필요"],
+            }
+
+        patents_summary = "\n".join(
+            f"- {p.title}: {p.abstract[:100]}..." for p in results[:5]
+        )
+        chain = self.crag_prompt | self.llm
+        response = await chain.ainvoke(
+            {
+                "user_problem": state["user_problem"],
+                "technical_field": state["technical_field"],
+                "num_results": len(results),
+                "patents_summary": patents_summary,
+            }
+        )
+        try:
+            data = json.loads(response.content)
+            sufficient = data.get("sufficient", True)
+        except (json.JSONDecodeError, AttributeError):
+            sufficient = True  # default to sufficient if parsing fails
+
+        return {
+            "context_sufficient": sufficient,
+            "current_step": "evaluate_context",
+            "reasoning_trace": state["reasoning_trace"]
+            + [f"[CRAG 평가] 컨텍스트 {'충분' if sufficient else '불충분'}"],
+        }
+
+    async def _search_kipris_node(self, state: AgentState) -> dict:
+        keyword = state["user_problem"][:50]
+        patents = await self.kipris_client.search_patents(keyword, num_of_rows=20)
+        return {
+            "current_step": "search_kipris",
+            "reasoning_trace": state["reasoning_trace"]
+            + [f"[KIPRIS 검색] 외부 API에서 {len(patents)}건 추가 수집"],
+        }
 
     async def _generate_idea_node(self, state: AgentState) -> dict:
         triz_text = ", ".join(
@@ -85,30 +187,42 @@ class ReasoningAgent:
         )
         return {
             "current_idea": response.content,
+            "current_step": "generate_idea",
             "reasoning_trace": state["reasoning_trace"]
             + [f"[아이디어 생성] TRIZ 원리 {triz_text} 적용"],
         }
 
-    async def _search_prior_art_node(self, state: AgentState) -> dict:
-        query = f"{state['user_problem']} {state['current_idea'][:200]}"
-        results = await self.patent_searcher.search(query)
-        max_score = max((p.similarity_score for p in results), default=0.0)
-        return {
-            "similar_patents": results,
-            "max_similarity_score": max_score,
-            "reasoning_trace": state["reasoning_trace"]
-            + [f"[선행기술 조사] {len(results)}건 검색, 최대 유사도: {max_score:.1%}"],
-        }
+    async def _evaluate_novelty_node(self, state: AgentState) -> dict:
+        patents_text = "\n".join(
+            f"- {p.title} (유사도: {p.similarity_score:.1%}): {p.abstract[:150]}"
+            for p in state["similar_patents"][:5]
+        )
+        if not patents_text:
+            patents_text = "(선행기술 없음)"
 
-    async def _evaluate_node(self, state: AgentState) -> dict:
-        threshold = self.settings.SIMILARITY_THRESHOLD
-        score = state["max_similarity_score"]
-        if score > threshold:
-            msg = f"[평가] 유사도 {score:.1%} > {threshold:.0%} → 회피 설계 필요"
-        else:
-            msg = f"[평가] 유사도 {score:.1%} ≤ {threshold:.0%} → 독창성 확보"
+        chain = self.novelty_prompt | self.llm
+        response = await chain.ainvoke(
+            {
+                "current_idea": state["current_idea"],
+                "similar_patents_text": patents_text,
+            }
+        )
+        try:
+            data = json.loads(response.content)
+            novelty_score = float(data.get("novelty_score", 0.5))
+            reasoning = data.get("reasoning", "")
+        except (json.JSONDecodeError, AttributeError, ValueError):
+            novelty_score = 0.5
+            reasoning = "평가 파싱 실패, 기본값 사용"
+
+        is_novel = novelty_score >= self.settings.SIMILARITY_THRESHOLD
+        status = "독창적" if is_novel else "유사"
         return {
-            "reasoning_trace": state["reasoning_trace"] + [msg],
+            "novelty_score": novelty_score,
+            "novelty_reasoning": reasoning,
+            "current_step": "evaluate_novelty",
+            "reasoning_trace": state["reasoning_trace"]
+            + [f"[신규성 평가] 점수: {novelty_score:.1%} → {status}"],
         }
 
     async def _evade_node(self, state: AgentState) -> dict:
@@ -129,16 +243,36 @@ class ReasoningAgent:
         return {
             "current_idea": response.content,
             "evasion_count": new_count,
+            "current_step": "evade",
             "reasoning_trace": state["reasoning_trace"]
             + [f"[회피 설계 #{new_count}] 새로운 아이디어 생성"],
         }
 
-    async def _finalize_node(self, state: AgentState) -> dict:
+    async def _draft_patent_node(self, state: AgentState) -> dict:
+        from app.services.draft_generator import generate_draft
+
+        triz_text = ", ".join(
+            f"#{p.number} {p.name_ko}({p.name_en})" for p in state["triz_principles"]
+        )
+        draft, docx_path = await generate_draft(
+            idea=state["current_idea"],
+            problem_description=state["user_problem"],
+            triz_principles_text=triz_text,
+            settings=self.settings,
+        )
         return {
             "final_idea": state["current_idea"],
-            "reasoning_trace": state["reasoning_trace"] + ["[완료] 최종 아이디어 확정"],
+            "current_step": "draft_patent",
+            "reasoning_trace": state["reasoning_trace"] + ["[완료] 특허 명세서 초안 생성"],
         }
+
+    # ── Public API ────────────────────────────────────────────────
 
     async def run(self, initial_state: AgentState) -> AgentState:
         result = await self.graph.ainvoke(initial_state)
         return result
+
+    async def stream(self, initial_state: AgentState):
+        """Yield state updates after each node for SSE streaming."""
+        async for event in self.graph.astream(initial_state):
+            yield event

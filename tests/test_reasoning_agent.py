@@ -1,28 +1,41 @@
-def test_should_evade_returns_true_when_similarity_high():
-    from app.services.reasoning_agent import should_evade
+def test_route_after_evaluate_novelty_novel():
+    """Should route to draft_patent when idea is novel."""
+    from app.services.reasoning_agent import route_after_evaluate_novelty
 
-    state = {
-        "max_similarity_score": 0.85,
-        "evasion_count": 0,
-    }
-    assert should_evade(state, threshold=0.8, max_attempts=3) is True
-
-
-def test_should_evade_returns_false_when_similarity_low():
-    from app.services.reasoning_agent import should_evade
-
-    state = {
-        "max_similarity_score": 0.6,
-        "evasion_count": 0,
-    }
-    assert should_evade(state, threshold=0.8, max_attempts=3) is False
+    state = {"novelty_score": 0.8, "evasion_count": 0}
+    result = route_after_evaluate_novelty(state, threshold=0.5, max_attempts=3)
+    assert result == "draft_patent"
 
 
-def test_should_evade_returns_false_when_max_attempts_reached():
-    from app.services.reasoning_agent import should_evade
+def test_route_after_evaluate_novelty_not_novel():
+    """Should route to evade when idea is not novel and attempts remain."""
+    from app.services.reasoning_agent import route_after_evaluate_novelty
 
-    state = {
-        "max_similarity_score": 0.9,
-        "evasion_count": 3,
-    }
-    assert should_evade(state, threshold=0.8, max_attempts=3) is False
+    state = {"novelty_score": 0.3, "evasion_count": 0}
+    result = route_after_evaluate_novelty(state, threshold=0.5, max_attempts=3)
+    assert result == "evade"
+
+
+def test_route_after_evaluate_novelty_max_attempts():
+    """Should route to draft_patent when max attempts reached even if not novel."""
+    from app.services.reasoning_agent import route_after_evaluate_novelty
+
+    state = {"novelty_score": 0.3, "evasion_count": 3}
+    result = route_after_evaluate_novelty(state, threshold=0.5, max_attempts=3)
+    assert result == "draft_patent"
+
+
+def test_route_after_evaluate_context_sufficient():
+    """Should route to generate_idea when context is sufficient."""
+    from app.services.reasoning_agent import route_after_evaluate_context
+
+    state = {"context_sufficient": True}
+    assert route_after_evaluate_context(state) == "generate_idea"
+
+
+def test_route_after_evaluate_context_insufficient():
+    """Should route to search_kipris when context is insufficient."""
+    from app.services.reasoning_agent import route_after_evaluate_context
+
+    state = {"context_sufficient": False}
+    assert route_after_evaluate_context(state) == "search_kipris"
