@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from app.api.schemas.response import PatentGenerateResponse
 from app.config import Settings
@@ -54,11 +55,15 @@ class PatentService:
             triz_principles_text=triz_text,
             settings=self.settings,
         )
+        draft_id = Path(docx_path).stem if docx_path else None
 
         return PatentGenerateResponse(
             patent_draft=draft,
             triz_principles=final_state["triz_principles"],
             similar_patents=final_state["similar_patents"],
             reasoning_trace=final_state["reasoning_trace"],
+            draft_id=draft_id,
+            novelty_score=final_state.get("novelty_score"),
+            threshold=self.settings.SIMILARITY_THRESHOLD,
             docx_download_url=docx_path,
         )

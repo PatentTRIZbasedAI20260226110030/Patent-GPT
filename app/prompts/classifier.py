@@ -8,15 +8,17 @@ You must respond ONLY with a JSON array. Each element must have these fields:
 - "name_en": English name
 - "name_ko": Korean name
 - "description": Brief explanation of why this principle applies
+- "matching_score": how well this principle matches the problem (0.0 to 1.0)
 
 Example response:
 [
   {{"number": 1, "name_en": "Segmentation", "name_ko": "분할", \
 "description": "The problem involves a monolithic structure \
-that could benefit from being divided into independent parts."}},
+that could benefit from being divided into independent parts.", \
+"matching_score": 0.92}},
   {{"number": 7, "name_en": "Nesting", "name_ko": "포개기", \
 "description": "Space constraints suggest placing components \
-inside each other."}}
+inside each other.", "matching_score": 0.78}}
 ]
 
 Available TRIZ principles for reference:
