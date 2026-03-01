@@ -11,7 +11,7 @@ def test_generate_endpoint_accepts_valid_request():
         "/api/v1/patent/generate",
         json={"problem_description": "발열은 줄이고 싶지만 두께는 얇아야 한다"},
     )
-    # Without valid OPENAI_API_KEY, the dependency injection will fail with 500
+    # Without valid API keys, the dependency injection will fail with 500
     # but the route itself accepts the request (not 404 or 422)
     assert response.status_code in (200, 500)
 
@@ -53,3 +53,15 @@ def test_docx_download_returns_404_for_missing():
     client = TestClient(app)
     response = client.get("/api/v1/patent/nonexistent/docx")
     assert response.status_code == 404
+
+
+def test_stream_endpoint_exists():
+    from app.main import app
+
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.post(
+        "/api/v1/patent/generate/stream",
+        json={"problem_description": "발열은 줄이고 싶지만 두께는 얇아야 한다"},
+    )
+    # Without valid API keys, will get 500, but route exists (not 404/405)
+    assert response.status_code in (200, 500)

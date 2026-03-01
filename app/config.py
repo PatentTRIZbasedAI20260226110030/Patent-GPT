@@ -3,16 +3,16 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # API Keys
-    OPENAI_API_KEY: str
+    GOOGLE_API_KEY: str  # required, for Gemini LLM
+    OPENAI_API_KEY: str = ""  # optional, for embeddings only
     KIPRIS_API_KEY: str = ""
 
     # Model settings
-    LLM_MODEL: str = "gpt-4o"
-    LLM_MODEL_MINI: str = "gpt-4o-mini"
+    GEMINI_MODEL: str = "gemini-3-flash-preview"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # Search settings
-    SIMILARITY_THRESHOLD: float = 0.8
+    SIMILARITY_THRESHOLD: float = 0.5
     MAX_EVASION_ATTEMPTS: int = 3
     RETRIEVAL_TOP_K: int = 20
     RERANK_TOP_K: int = 5

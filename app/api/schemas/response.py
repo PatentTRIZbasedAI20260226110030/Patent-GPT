@@ -9,6 +9,9 @@ class PatentGenerateResponse(BaseModel):
     triz_principles: list[TRIZPrinciple]
     similar_patents: list[SimilarPatent]
     reasoning_trace: list[str]
+    draft_id: str | None = None
+    novelty_score: float | None = None
+    threshold: float | None = None
     docx_download_url: str | None = None
 
 

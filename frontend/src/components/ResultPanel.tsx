@@ -28,6 +28,15 @@ export function ResultPanel({ data, onRegenerate }: ResultPanelProps) {
     data.reasoning_trace?.length > 0
       ? data.reasoning_trace[data.reasoning_trace.length - 1]
       : null;
+  const highSimilarityCount = data.similar_patents.filter(
+    (patent) => patent.similarity_score >= (data.threshold ?? 0.8)
+  ).length;
+  const noveltyPercent =
+    typeof data.novelty_score === "number"
+      ? Math.round(data.novelty_score * 100)
+      : null;
+  const thresholdPercent =
+    typeof data.threshold === "number" ? Math.round(data.threshold * 100) : null;
 
   return (
     <div className="space-y-6">
@@ -38,6 +47,39 @@ export function ResultPanel({ data, onRegenerate }: ResultPanelProps) {
         {lastTrace && (
           <p className="text-body-m text-text-muted">{lastTrace}</p>
         )}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-card border border-border bg-bg-surface p-4">
+          <p className="text-caption text-text-muted mb-1">신규성 점수</p>
+          <p className="text-h3 text-text-primary">
+            {noveltyPercent !== null ? `${noveltyPercent}%` : "-"}
+          </p>
+        </div>
+        <div className="rounded-card border border-border bg-bg-surface p-4">
+          <p className="text-caption text-text-muted mb-1">임계값</p>
+          <p className="text-h3 text-text-primary">
+            {thresholdPercent !== null ? `${thresholdPercent}%` : "-"}
+          </p>
+        </div>
+        <div
+          className={cn(
+            "rounded-card border p-4",
+            highSimilarityCount > 0
+              ? "border-warning bg-warning/5"
+              : "border-success bg-success/5"
+          )}
+        >
+          <p className="text-caption text-text-muted mb-1">유사도 경고 건수</p>
+          <p
+            className={cn(
+              "text-h3",
+              highSimilarityCount > 0 ? "text-warning" : "text-success"
+            )}
+          >
+            {highSimilarityCount}건
+          </p>
+        </div>
       </div>
 
       <div className="border-b border-border">
@@ -122,11 +164,29 @@ export function ResultPanel({ data, onRegenerate }: ResultPanelProps) {
         )}
       </div>
 
+      <section className="rounded-card border border-border bg-bg-surface p-5">
+        <h2 className="text-h3 text-text-primary mb-3">추론 과정</h2>
+        {data.reasoning_trace.length === 0 ? (
+          <p className="text-body-m text-text-muted">표시할 추론 로그가 없습니다.</p>
+        ) : (
+          <ol className="space-y-2">
+            {data.reasoning_trace.map((trace, index) => (
+              <li key={`${trace}-${index}`} className="text-body-m text-text-secondary">
+                {trace}
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
       <div className="flex flex-wrap gap-4 pt-4 border-t border-border">
         <Button variant="ghost" onClick={onRegenerate}>
           다시 생성하기
         </Button>
-        <DownloadButton docxDownloadUrl={data.docx_download_url} />
+        <DownloadButton
+          draftId={data.draft_id}
+          docxDownloadUrl={data.docx_download_url}
+        />
       </div>
     </div>
   );

@@ -31,14 +31,22 @@ def test_agent_state_keys():
 
     state: AgentState = {
         "user_problem": "test",
+        "technical_field": "",
         "triz_principles": [],
         "current_idea": "",
         "similar_patents": [],
         "max_similarity_score": 0.0,
+        "novelty_score": 0.0,
+        "novelty_reasoning": "",
+        "context_sufficient": False,
         "evasion_count": 0,
-        "should_evade": False,
         "final_idea": "",
         "reasoning_trace": [],
+        "current_step": "",
+        "patent_draft": None,
+        "docx_path": None,
     }
-    assert state["should_evade"] is False
+    assert state["context_sufficient"] is False
     assert state["evasion_count"] == 0
+    assert state["novelty_score"] == 0.0
+    assert state["patent_draft"] is None

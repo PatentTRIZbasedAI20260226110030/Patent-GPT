@@ -9,6 +9,11 @@ interface TrizCardProps {
 }
 
 export function TrizCard({ principle, className }: TrizCardProps) {
+  const matchingPercent =
+    typeof principle.matching_score === "number"
+      ? Math.round(principle.matching_score * 100)
+      : null;
+
   return (
     <div
       className={cn(
@@ -21,9 +26,17 @@ export function TrizCard({ principle, className }: TrizCardProps) {
           {principle.number}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-h3 text-text-primary mb-2">
-            {principle.name_ko}
-          </h3>
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <h3 className="text-h3 text-text-primary">{principle.name_ko}</h3>
+            {matchingPercent !== null && (
+              <span className="rounded-full bg-primary/10 text-primary text-caption px-2 py-1 shrink-0">
+                {matchingPercent}%
+              </span>
+            )}
+          </div>
+          {principle.name_en && (
+            <p className="text-caption text-text-muted mb-2">{principle.name_en}</p>
+          )}
           <p className="text-body-m text-text-secondary line-clamp-3">
             {principle.description}
           </p>

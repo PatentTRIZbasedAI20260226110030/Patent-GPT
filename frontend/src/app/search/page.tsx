@@ -9,6 +9,7 @@ import { searchPatent } from "@/lib/api";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
+  const [topK, setTopK] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<
@@ -25,7 +26,7 @@ export default function SearchPage() {
     setResults(null);
 
     try {
-      const res = await searchPatent({ query: trimmed });
+      const res = await searchPatent({ query: trimmed, top_k: topK });
       setResults(res.results);
     } catch (err) {
       setError(
@@ -66,8 +67,9 @@ export default function SearchPage() {
 
         <form
           onSubmit={handleSearch}
-          className="max-w-[680px] mx-auto flex gap-3 mb-8"
+          className="max-w-[680px] mx-auto flex flex-col gap-3 mb-8"
         >
+          <div className="flex gap-3">
           <Input
             placeholder="방열 구조, 열관리 등 검색어 입력"
             value={query}
@@ -75,9 +77,26 @@ export default function SearchPage() {
             disabled={isLoading}
             className="flex-1"
           />
+            <Input
+              type="number"
+              min={1}
+              max={50}
+              value={topK}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (!Number.isNaN(value)) {
+                  setTopK(Math.min(50, Math.max(1, value)));
+                }
+              }}
+              disabled={isLoading}
+              className="w-24"
+              aria-label="결과 개수"
+            />
           <Button type="submit" variant="primary" disabled={isLoading}>
             {isLoading ? "검색 중..." : "검색"}
           </Button>
+          </div>
+          <p className="text-caption text-text-muted">결과 개수: 1~50 (기본 5)</p>
         </form>
 
         {error && (

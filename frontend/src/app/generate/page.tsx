@@ -1,13 +1,24 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { PatentForm } from "@/components/PatentForm";
 import { LoadingSteps } from "@/components/LoadingSteps";
 import { ResultPanel } from "@/components/ResultPanel";
 import { Button } from "@/components/ui/button";
-import { generatePatent } from "@/lib/api";
-import type { PatentGenerateRequest, PatentGenerateResponse } from "@/types/patent";
+import { generatePatentStream } from "@/lib/api";
+import type { PatentGenerateResponse } from "@/types/patent";
+
+const NODE_TO_STEP: Record<string, number> = {
+  classify_triz: 0,
+  search_internal: 1,
+  evaluate_context: 1,
+  search_kipris: 1,
+  generate_idea: 2,
+  evaluate_novelty: 2,
+  evade: 2,
+  draft_patent: 3,
+};
 
 type ViewState = "input" | "loading" | "result" | "error";
 
@@ -16,38 +27,26 @@ export default function GeneratePage() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState<PatentGenerateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
 
   const handleSubmit = useCallback(
-    async (data: PatentGenerateRequest) => {
+    async (data: {
+      problem_description: string;
+      technical_field?: string;
+      max_evasion_attempts?: number;
+    }) => {
       setViewState("loading");
       setLoadingStep(0);
       setErrorMessage(null);
 
-      intervalRef.current = setInterval(() => {
-        setLoadingStep((prev) => {
-          if (prev >= 3) {
-            clearInterval(intervalRef.current!);
-            return 3;
-          }
-          return prev + 1;
-        });
-      }, 1500);
-
       try {
-        const res = await generatePatent(data);
-        clearInterval(intervalRef.current!);
+        const res = await generatePatentStream(data, (event) => {
+          const step = NODE_TO_STEP[event.step];
+          if (step !== undefined) setLoadingStep(step);
+        });
         setLoadingStep(4);
         setResult(res);
         setViewState("result");
       } catch (err) {
-        clearInterval(intervalRef.current!);
         setErrorMessage(
           err instanceof Error ? err.message : "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
         );
@@ -92,7 +91,7 @@ export default function GeneratePage() {
               </p>
             </div>
             <div className="max-w-[680px] mx-auto rounded-card border border-border bg-bg-surface p-6 md:p-8">
-              <PatentForm onSubmit={handleSubmit} />
+              <PatentForm onSubmit={handleSubmit} isLoading={false} />
             </div>
           </>
         )}
@@ -103,7 +102,7 @@ export default function GeneratePage() {
               AI가 분석 중입니다...
             </h2>
             <p className="text-body-m text-text-muted mb-12">
-              잠시만 기다려주세요
+              4단계 파이프라인을 순차 실행합니다
             </p>
             <LoadingSteps currentStep={loadingStep} />
           </div>

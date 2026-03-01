@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { downloadDocx, extractDraftIdFromUrl } from "@/lib/api";
+import { downloadDocx, resolveDraftId } from "@/lib/api";
 
 interface DownloadButtonProps {
+  draftId?: string | null;
   docxDownloadUrl: string | null;
   disabled?: boolean;
   className?: string;
 }
 
 export function DownloadButton({
+  draftId,
   docxDownloadUrl,
   disabled,
   className,
@@ -18,19 +20,19 @@ export function DownloadButton({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const draftId = extractDraftIdFromUrl(docxDownloadUrl);
-  const canDownload = !!draftId && !disabled && !isLoading;
+  const resolvedDraftId = resolveDraftId(draftId ?? null, docxDownloadUrl);
+  const canDownload = !!resolvedDraftId && !disabled && !isLoading;
 
   const handleDownload = async () => {
-    if (!draftId) return;
+    if (!resolvedDraftId) return;
     setIsLoading(true);
     setError(null);
     try {
-      const blob = await downloadDocx(draftId);
+      const blob = await downloadDocx(resolvedDraftId);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `patent_draft_${draftId}.docx`;
+      a.download = `patent_draft_${resolvedDraftId}.docx`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (err) {
