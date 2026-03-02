@@ -3,7 +3,7 @@ from pathlib import Path
 
 from app.api.schemas.response import PatentGenerateResponse
 from app.config import Settings
-from app.models.state import AgentState
+from app.models.state import build_initial_state
 from app.services.reasoning_agent import PatentPipeline
 
 logger = logging.getLogger(__name__)
@@ -16,28 +16,17 @@ class PatentService:
 
     async def generate(
         self,
-        problem_description: str,
+        problem_description: str = "",
+        keyword: str | None = None,
         technical_field: str | None = None,
         max_evasion_attempts: int = 3,
     ) -> PatentGenerateResponse:
-        initial_state: AgentState = {
-            "user_problem": problem_description,
-            "technical_field": technical_field or "",
-            "triz_principles": [],
-            "current_idea": "",
-            "similar_patents": [],
-            "max_similarity_score": 0.0,
-            "novelty_score": 0.0,
-            "novelty_reasoning": "",
-            "context_sufficient": False,
-            "evasion_count": 0,
-            "max_evasion_attempts": max_evasion_attempts,
-            "final_idea": "",
-            "reasoning_trace": [],
-            "current_step": "",
-            "patent_draft": None,
-            "docx_path": None,
-        }
+        initial_state = build_initial_state(
+            problem_description=problem_description,
+            keyword=keyword or "",
+            technical_field=technical_field or "",
+            max_evasion_attempts=max_evasion_attempts,
+        )
 
         final_state = await self.pipeline.run(initial_state)
 
