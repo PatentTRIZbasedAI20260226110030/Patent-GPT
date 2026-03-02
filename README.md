@@ -168,7 +168,7 @@ Each pipeline stage is a standalone, independently testable service.
 
 | Stage | Service | Description | Tech |
 | :--: | :-- | :-- | :-- |
-| 1 | **TRIZ Classifier** | Maps problem to TRIZ principles via few-shot LLM routing | GPT-4o-mini, Few-Shot Prompting |
+| 1 | **TRIZ Classifier** | Maps problem to TRIZ principles via few-shot LLM routing | Gemini 3.0 Flash, Few-Shot Prompting |
 | 2 | **Prior Art Searcher** | Hybrid retrieval over KIPRISplus data + precision reranking | BM25 + ChromaDB + Cross-Encoder |
 | 3 | **Reasoning Agent** | Autonomous redesign when similarity exceeds threshold (evasion design) | LangGraph evasion loop |
 | 4 | **Draft Generator** | KIPO-format JSON + DOCX patent draft generation | Pydantic `with_structured_output` + python-docx |
@@ -191,8 +191,9 @@ Each pipeline stage is a standalone, independently testable service.
 ### Prerequisites
 
 - Python 3.11+
-- OpenAI API key
-- KIPRISplus API key (issued via [Korea Public Data Portal](https://www.data.go.kr/))
+- Google API key (Gemini)
+- OpenAI API key (optional, for embeddings)
+- KIPRISplus API key (optional, issued via [Korea Public Data Portal](https://www.data.go.kr/))
 
 ### Installation
 
@@ -212,16 +213,17 @@ cp .env.example .env
 ### Environment Variables
 
 ```env
-OPENAI_API_KEY=sk-...                  # OpenAI API key
-KIPRIS_API_KEY=...                     # KIPRISplus API key
-LLM_MODEL=gpt-4o                       # Generation model
-LLM_MODEL_MINI=gpt-4o-mini             # Classification model
+GOOGLE_API_KEY=...                     # Gemini API key (required)
+OPENAI_API_KEY=...                     # OpenAI API key (optional, embeddings only)
+KIPRIS_API_KEY=...                     # KIPRISplus API key (optional)
+GEMINI_MODEL=gemini-3-flash-preview    # LLM model for all stages
 EMBEDDING_MODEL=text-embedding-3-small
-SIMILARITY_THRESHOLD=0.8               # Evasion loop triggers above this
+SIMILARITY_THRESHOLD=0.5               # Evasion loop triggers above this
 MAX_EVASION_ATTEMPTS=3                 # Max redesign iterations
 RETRIEVAL_TOP_K=20                     # Candidates from hybrid search
 RERANK_TOP_K=5                         # Final results after reranking
 CHROMA_PERSIST_DIR=./data/chromadb
+ALLOWED_ORIGINS=["http://localhost:3000"]  # CORS allowed origins
 ```
 
 ### Ingest Patent Data
@@ -431,7 +433,7 @@ Trigger patent ingestion from KIPRISplus into ChromaDB.
 | **v0.3.0 · Agent & Output** | LangGraph Reasoning Agent, Draft Generator (Pydantic + DOCX), PatentService orchestrator | ✅ Done |
 | **v0.4.0 · Ship** | Route wiring, Ruff linting, full test suite, smoke test | ✅ Done |
 | **v0.5.0 · UI/UX** | Figma 9-screen wireframe, Next.js frontend scaffold, component library, API client | ✅ Done |
-| **v0.6.0 · Integration** | SSE streaming endpoint, frontend-backend API alignment, E2E flow | 🚧 In Progress |
+| **v0.6.0 · Integration** | SSE streaming, CORS, error handling, E2E tests, documentation sync | ✅ Done |
 | **v0.7.0 · Intelligence** | RAGAS evaluation, TRIZ Contradiction Matrix, conversation memory | 📋 Planned |
 
 ### UI/UX Design

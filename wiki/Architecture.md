@@ -50,7 +50,7 @@ Patent-GPT follows a **Service Layer + LangGraph Core** architecture. FastAPI ro
 
 **Purpose:** Map a user's keyword or problem description to relevant TRIZ inventive principles.
 
-- **Model:** GPT-4o-mini (cost-efficient for classification)
+- **Model:** Gemini 3.0 Flash (via `langchain-google-genai`)
 - **Method:** LLM-based routing with few-shot prompting
 - **Input:** Keyword + problem description + optional domain
 - **Output:** List of applicable TRIZ principles with inventive idea
@@ -85,7 +85,7 @@ Patent-GPT follows a **Service Layer + LangGraph Core** architecture. FastAPI ro
 └──────┬──────┘
        │
        ▼
-  similarity > 80%?
+  similarity > 50%?
     │         │
    YES        NO
     │         │
@@ -107,15 +107,15 @@ Patent-GPT follows a **Service Layer + LangGraph Core** architecture. FastAPI ro
           └────────┘
 ```
 
-- **Threshold:** `SIMILARITY_THRESHOLD=0.8`
+- **Threshold:** `SIMILARITY_THRESHOLD=0.5`
 - **Max iterations:** `MAX_EVASION_ATTEMPTS=3`
-- **State:** Managed via `AgentState` Pydantic model
+- **State:** Managed via `AgentState` TypedDict
 
 ### Stage 4: Draft Generator
 
 **Purpose:** Produce a structured patent draft in KIPO (Korean IP Office) format.
 
-- **Model:** GPT-4o with Pydantic structured output
+- **Model:** Gemini 3.0 Flash with Pydantic structured output
 - **Format (KIPO standard):**
   - 발명의 명칭 (Title)
   - 요약 (Abstract)
@@ -152,6 +152,7 @@ DraftGenerator.generate()
 
 | Service | Purpose | Auth |
 | :-- | :-- | :-- |
-| OpenAI API | LLM generation + embeddings | `OPENAI_API_KEY` |
+| Google Generative AI | LLM generation (all stages) | `GOOGLE_API_KEY` |
+| OpenAI API | Embeddings only (`text-embedding-3-small`) | `OPENAI_API_KEY` |
 | KIPRISplus API | Korean patent data | `KIPRIS_API_KEY` |
 | ChromaDB | Local vector storage | No auth (local) |
