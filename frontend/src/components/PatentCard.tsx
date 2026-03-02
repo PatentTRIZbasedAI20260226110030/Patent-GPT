@@ -21,7 +21,7 @@ export function PatentCard({ patent, className }: PatentCardProps) {
   return (
     <div
       className={cn(
-        "rounded-card border bg-bg-surface p-5 shadow-card",
+        "rounded-card border bg-bg-surface p-5 shadow-card transition-shadow hover:shadow-md",
         isHighSimilarity ? "border-warning-border" : "border-border",
         className
       )}

@@ -75,9 +75,8 @@ export default function GeneratePage() {
               <h1 className="text-h1 text-text-primary mb-2">
                 특허 아이디어 생성
               </h1>
-              <p className="text-body-m text-text-secondary">
-                해결하고 싶은 문제를 입력하면 TRIZ 기반으로 특허 아이디어를
-                생성합니다
+              <p className="text-body-m text-text-secondary" style={{ textWrap: "balance" }}>
+                해결하고 싶은 문제를 입력하면 TRIZ 기반으로 특허 아이디어를 생성합니다
               </p>
             </div>
             <div className="max-w-[680px] mx-auto rounded-card border border-border bg-bg-surface p-6 md:p-8">

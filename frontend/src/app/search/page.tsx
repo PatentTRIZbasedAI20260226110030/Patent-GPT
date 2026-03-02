@@ -66,22 +66,25 @@ export default function SearchPage() {
             disabled={isLoading}
             className="w-full"
           />
-          <div className="flex gap-3">
-            <Input
-              type="number"
-              min={1}
-              max={50}
-              value={topK}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                if (!Number.isNaN(value)) {
-                  setTopK(Math.min(50, Math.max(1, value)));
-                }
-              }}
-              disabled={isLoading}
-              className="w-24"
-              aria-label="결과 개수"
-            />
+          <div className="flex gap-3 items-end">
+            <div>
+              <label htmlFor="top-k" className="text-caption text-text-muted mb-1 block">건수</label>
+              <Input
+                id="top-k"
+                type="number"
+                min={1}
+                max={50}
+                value={topK}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (!Number.isNaN(value)) {
+                    setTopK(Math.min(50, Math.max(1, value)));
+                  }
+                }}
+                disabled={isLoading}
+                className="w-20"
+              />
+            </div>
             <Button type="submit" variant="primary" disabled={isLoading} className="flex-1 sm:flex-none">
               {isLoading ? "검색 중..." : "검색"}
             </Button>

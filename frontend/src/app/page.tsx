@@ -30,7 +30,7 @@ export default function LandingPage() {
       <section className="px-6 py-16 border-t border-border">
         <div className="max-w-content mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg mb-4">
+            <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg mb-4">
               1
             </div>
             <h3 className="text-h3 text-text-primary mb-2">문제 입력</h3>
@@ -39,7 +39,7 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg mb-4">
+            <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg mb-4">
               2
             </div>
             <h3 className="text-h3 text-text-primary mb-2">AI 분석</h3>
@@ -48,7 +48,7 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg mb-4">
+            <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg mb-4">
               3
             </div>
             <h3 className="text-h3 text-text-primary mb-2">특허 초안 생성</h3>

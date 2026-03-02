@@ -17,7 +17,7 @@ export function TrizCard({ principle, className }: TrizCardProps) {
   return (
     <div
       className={cn(
-        "rounded-card border border-border bg-bg-surface p-5 shadow-card",
+        "rounded-card border border-border bg-bg-surface p-5 shadow-card transition-shadow hover:shadow-md",
         className
       )}
     >
