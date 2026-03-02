@@ -14,6 +14,9 @@ class PatentGenerateRequest(BaseModel):
     max_evasion_attempts: int = Field(
         default=3, ge=1, le=5, description="최대 회피 설계 시도 횟수"
     )
+    session_id: str | None = Field(
+        default=None, description="세션 ID (대화 맥락 유지용)"
+    )
 
     @model_validator(mode="after")
     def at_least_one_input(self) -> "PatentGenerateRequest":

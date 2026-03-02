@@ -15,6 +15,7 @@ class PatentGenerateResponse(BaseModel):
     threshold: float | None = None
     docx_download_url: str | None = None
     evaluation: EvaluationResult | None = None
+    session_id: str | None = None
 
 
 class PatentSearchResponse(BaseModel):
