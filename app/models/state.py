@@ -15,6 +15,7 @@ class AgentState(TypedDict):
     novelty_reasoning: str
     context_sufficient: bool
     evasion_count: int
+    max_evasion_attempts: int
     final_idea: str
     reasoning_trace: list[str]
     current_step: str

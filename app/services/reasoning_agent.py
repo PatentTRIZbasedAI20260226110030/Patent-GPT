@@ -7,6 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, StateGraph
 
 from app.config import Settings
+from app.models.patent_draft import SimilarPatent
 from app.models.state import AgentState
 from app.prompts.crag import CRAG_EVALUATION_HUMAN, CRAG_EVALUATION_SYSTEM
 from app.prompts.evasion import EVASION_HUMAN, EVASION_SYSTEM
@@ -19,13 +20,11 @@ from app.utils.kipris_client import KIPRISClient
 logger = logging.getLogger(__name__)
 
 
-def route_after_evaluate_novelty(
-    state: dict[str, Any], threshold: float, max_attempts: int
-) -> str:
+def route_after_evaluate_novelty(state: dict[str, Any], threshold: float) -> str:
     """Route after novelty evaluation: novel → draft, not novel → evade or draft."""
     if state["novelty_score"] >= threshold:
         return "draft_patent"
-    if state["evasion_count"] >= max_attempts:
+    if state["evasion_count"] >= state["max_evasion_attempts"]:
         return "draft_patent"
     return "evade"
 
@@ -93,7 +92,6 @@ class PatentPipeline:
             lambda state: route_after_evaluate_novelty(
                 state,
                 threshold=self.settings.SIMILARITY_THRESHOLD,
-                max_attempts=self.settings.MAX_EVASION_ATTEMPTS,
             ),
             {"draft_patent": "draft_patent", "evade": "evade"},
         )
@@ -168,7 +166,20 @@ class PatentPipeline:
     async def _search_kipris_node(self, state: AgentState) -> dict:
         keyword = state["user_problem"][:50]
         patents = await self.kipris_client.search_patents(keyword, num_of_rows=20)
+        kipris_as_patents = [
+            SimilarPatent(
+                title=p.get("title", ""),
+                abstract=p.get("abstract", ""),
+                application_number=p.get("application_number", ""),
+                similarity_score=0.0,
+            )
+            for p in patents
+        ]
+        merged = state["similar_patents"] + kipris_as_patents
+        max_score = max((p.similarity_score for p in merged), default=0.0)
         return {
+            "similar_patents": merged,
+            "max_similarity_score": max_score,
             "current_step": "search_kipris",
             "reasoning_trace": state["reasoning_trace"]
             + [f"[KIPRIS 검색] 외부 API에서 {len(patents)}건 추가 수집"],

@@ -31,6 +31,7 @@ class PatentService:
             "novelty_reasoning": "",
             "context_sufficient": False,
             "evasion_count": 0,
+            "max_evasion_attempts": max_evasion_attempts,
             "final_idea": "",
             "reasoning_trace": [],
             "current_step": "",
@@ -38,12 +39,7 @@ class PatentService:
             "docx_path": None,
         }
 
-        original_max = self.settings.MAX_EVASION_ATTEMPTS
-        self.settings.MAX_EVASION_ATTEMPTS = max_evasion_attempts
-        try:
-            final_state = await self.pipeline.run(initial_state)
-        finally:
-            self.settings.MAX_EVASION_ATTEMPTS = original_max
+        final_state = await self.pipeline.run(initial_state)
 
         docx_path = final_state.get("docx_path")
         draft_id = Path(docx_path).stem if docx_path else None
@@ -56,5 +52,5 @@ class PatentService:
             draft_id=draft_id,
             novelty_score=final_state.get("novelty_score"),
             threshold=self.settings.SIMILARITY_THRESHOLD,
-            docx_download_url=docx_path,
+            docx_download_url=f"/api/v1/patent/{draft_id}/docx" if draft_id else None,
         )

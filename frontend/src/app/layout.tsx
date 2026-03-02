@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import BackendStatusBanner from "@/components/BackendStatusBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-bg-base font-pretendard antialiased">
+        <BackendStatusBanner />
         {children}
       </body>
     </html>

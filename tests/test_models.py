@@ -40,6 +40,7 @@ def test_agent_state_keys():
         "novelty_reasoning": "",
         "context_sufficient": False,
         "evasion_count": 0,
+        "max_evasion_attempts": 3,
         "final_idea": "",
         "reasoning_trace": [],
         "current_step": "",

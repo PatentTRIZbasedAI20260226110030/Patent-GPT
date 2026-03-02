@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # ChromaDB
     CHROMA_PERSIST_DIR: str = "./data/chromadb"
 
+    # CORS
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

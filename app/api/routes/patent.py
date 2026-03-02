@@ -62,6 +62,7 @@ async def generate_patent_stream(
         "novelty_reasoning": "",
         "context_sufficient": False,
         "evasion_count": 0,
+        "max_evasion_attempts": request.max_evasion_attempts,
         "final_idea": "",
         "reasoning_trace": [],
         "current_step": "",
@@ -98,7 +99,7 @@ async def generate_patent_stream(
             "draft_id": draft_id,
             "novelty_score": accumulated.get("novelty_score"),
             "threshold": settings.SIMILARITY_THRESHOLD,
-            "docx_download_url": docx_path,
+            "docx_download_url": f"/api/v1/patent/{draft_id}/docx" if draft_id else None,
         }
         yield {"event": "done", "data": json.dumps(response, ensure_ascii=False)}
 
