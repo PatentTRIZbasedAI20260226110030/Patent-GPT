@@ -82,6 +82,34 @@ export function ResultPanel({ data, onRegenerate }: ResultPanelProps) {
         </div>
       </div>
 
+      {data.evaluation && (
+        <div className="rounded-card border border-border bg-bg-surface p-5 shadow-card">
+          <h2 className="text-h3 text-text-primary mb-3">품질 평가 (RAGAS)</h2>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { label: "충실도", value: data.evaluation.faithfulness },
+              { label: "답변 관련성", value: data.evaluation.answer_relevancy },
+              { label: "컨텍스트 재현율", value: data.evaluation.context_recall },
+            ].map((m) => (
+              <div key={m.label} className="text-center">
+                <p className="text-caption text-text-muted mb-1">{m.label}</p>
+                <p className="text-h3 text-text-primary font-mono">
+                  {Math.round(m.value * 100)}%
+                </p>
+              </div>
+            ))}
+          </div>
+          <p
+            className={cn(
+              "text-body-s mt-3 text-center font-medium",
+              data.evaluation.passed ? "text-success" : "text-warning"
+            )}
+          >
+            {data.evaluation.passed ? "임계값 통과" : "임계값 미달"}
+          </p>
+        </div>
+      )}
+
       <div className="border-b border-border">
         <nav className="flex gap-6">
           {tabs.map((tab) => (
