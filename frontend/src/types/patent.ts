@@ -4,6 +4,7 @@ export interface PatentGenerateRequest {
   problem_description: string;
   technical_field?: string;
   max_evasion_attempts?: number;
+  session_id?: string;
 }
 
 export interface PatentDraft {
@@ -40,6 +41,7 @@ export interface PatentGenerateResponse {
   novelty_score: number | null;
   threshold: number | null;
   docx_download_url: string | null;
+  session_id: string | null;
 }
 
 export interface PatentSearchRequest {

@@ -13,6 +13,7 @@ class PatentGenerateResponse(BaseModel):
     novelty_score: float | None = None
     threshold: float | None = None
     docx_download_url: str | None = None
+    session_id: str | None = None
 
 
 class PatentSearchResponse(BaseModel):
