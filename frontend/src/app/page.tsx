@@ -1,21 +1,15 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Navbar */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-content mx-auto w-full">
-        <Link href="/" className="text-xl font-bold text-text-primary">
-          Patent-GPT
-        </Link>
-        <Link href="/generate">
-          <Button variant="primary">특허 생성하기</Button>
-        </Link>
-      </nav>
+      <Navbar />
 
       {/* Hero */}
-      <section className="flex-1 flex flex-col items-center justify-center px-6 py-24 text-center">
+      <section className="flex-1 flex flex-col items-center justify-center px-6 py-16 sm:py-20 text-center">
         <p className="text-label text-primary mb-4">
           TRIZ 기반 AI 특허 아이디어 발굴
         </p>
@@ -65,12 +59,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="px-6 py-6 border-t border-border text-center">
-        <p className="text-caption text-text-muted">
-          팀5 · AI 부트캠프 2026
-        </p>
-      </footer>
+      <Footer />
     </div>
   );
 }

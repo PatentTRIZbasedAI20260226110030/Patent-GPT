@@ -5,6 +5,8 @@ import Link from "next/link";
 import { PatentForm } from "@/components/PatentForm";
 import { LoadingSteps } from "@/components/LoadingSteps";
 import { ResultPanel } from "@/components/ResultPanel";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { generatePatentStream } from "@/lib/api";
 import type { PatentGenerateResponse } from "@/types/patent";
@@ -64,19 +66,7 @@ export default function GeneratePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="flex items-center justify-between px-6 py-4 max-w-content mx-auto w-full">
-        <Link href="/" className="text-xl font-bold text-text-primary">
-          Patent-GPT
-        </Link>
-        <div className="flex gap-3">
-          <Link href="/search">
-            <Button variant="ghost">선행특허 검색</Button>
-          </Link>
-          <Link href="/generate">
-            <Button variant="primary">특허 생성하기</Button>
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="flex-1 px-6 py-8 max-w-content mx-auto w-full">
         {viewState === "input" && (
@@ -131,6 +121,8 @@ export default function GeneratePage() {
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }

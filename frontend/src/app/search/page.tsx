@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PatentCard } from "@/components/PatentCard";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { searchPatent } from "@/lib/api";
 
 export default function SearchPage() {
@@ -41,19 +43,7 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="flex items-center justify-between px-6 py-4 max-w-content mx-auto w-full">
-        <Link href="/" className="text-xl font-bold text-text-primary">
-          Patent-GPT
-        </Link>
-        <div className="flex gap-3">
-          <Link href="/search">
-            <Button variant="primary">선행특허 검색</Button>
-          </Link>
-          <Link href="/generate">
-            <Button variant="ghost">특허 생성하기</Button>
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="flex-1 px-6 py-8 max-w-content mx-auto w-full">
         <div className="max-w-[680px] mx-auto mb-8">
@@ -69,14 +59,14 @@ export default function SearchPage() {
           onSubmit={handleSearch}
           className="max-w-[680px] mx-auto flex flex-col gap-3 mb-8"
         >
-          <div className="flex gap-3">
           <Input
             placeholder="방열 구조, 열관리 등 검색어 입력"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={isLoading}
-            className="flex-1"
+            className="w-full"
           />
+          <div className="flex gap-3">
             <Input
               type="number"
               min={1}
@@ -92,9 +82,9 @@ export default function SearchPage() {
               className="w-24"
               aria-label="결과 개수"
             />
-          <Button type="submit" variant="primary" disabled={isLoading}>
-            {isLoading ? "검색 중..." : "검색"}
-          </Button>
+            <Button type="submit" variant="primary" disabled={isLoading} className="flex-1 sm:flex-none">
+              {isLoading ? "검색 중..." : "검색"}
+            </Button>
           </div>
           <p className="text-caption text-text-muted">결과 개수: 1~50 (기본 5)</p>
         </form>
@@ -130,6 +120,20 @@ export default function SearchPage() {
           </div>
         )}
 
+        {!isLoading && results === null && !error && (
+          <div className="max-w-[680px] mx-auto py-16 text-center">
+            <div className="text-4xl mb-4" aria-hidden="true">
+              🔍
+            </div>
+            <p className="text-body-m text-text-muted mb-1">
+              검색어를 입력하고 선행특허를 탐색하세요
+            </p>
+            <p className="text-caption text-text-muted">
+              키워드, 기술명, 발명 제목 등으로 검색할 수 있습니다
+            </p>
+          </div>
+        )}
+
         {!isLoading && results && results.length > 0 && (
           <div className="space-y-4">
             <p className="text-body-m text-text-secondary mb-4">
@@ -141,6 +145,8 @@ export default function SearchPage() {
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }

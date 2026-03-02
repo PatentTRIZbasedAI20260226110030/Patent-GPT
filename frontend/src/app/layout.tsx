@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Patent-GPT | TRIZ 기반 AI 특허 아이디어 발굴",
   description:
     "40가지 발명 원리로 당신의 문제를 혁신적인 특허 아이디어로 전환합니다",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
