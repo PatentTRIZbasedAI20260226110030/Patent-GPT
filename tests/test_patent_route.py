@@ -16,7 +16,7 @@ def test_generate_endpoint_accepts_valid_request():
     assert response.status_code in (200, 500)
 
 
-def test_generate_endpoint_rejects_empty_description():
+def test_generate_endpoint_rejects_empty_inputs():
     from app.api.routes.patent import get_patent_service
     from app.main import app
 
@@ -27,13 +27,26 @@ def test_generate_endpoint_rejects_empty_description():
 
     try:
         client = TestClient(app)
+        # Both empty — should be rejected
         response = client.post(
             "/api/v1/patent/generate",
-            json={"problem_description": ""},
+            json={"problem_description": "", "keyword": None},
         )
         assert response.status_code == 422
     finally:
         app.dependency_overrides.clear()
+
+
+def test_generate_endpoint_accepts_keyword_only():
+    from app.main import app
+
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.post(
+        "/api/v1/patent/generate",
+        json={"keyword": "방열 구조체"},
+    )
+    # Without valid API keys, will get 500, but request is valid (not 422)
+    assert response.status_code in (200, 500)
 
 
 def test_search_endpoint_accepts_valid_request():

@@ -2,6 +2,7 @@
 
 export interface PatentGenerateRequest {
   problem_description: string;
+  keyword?: string;
   technical_field?: string;
   max_evasion_attempts?: number;
 }

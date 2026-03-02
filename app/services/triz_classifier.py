@@ -24,6 +24,7 @@ async def classify_triz(
     problem_description: str,
     technical_field: str,
     settings: Settings,
+    keyword: str | None = None,
 ) -> list[TRIZPrinciple]:
     """Classify problem into top-3 TRIZ principles using Gemini."""
     llm = ChatGoogleGenerativeAI(
@@ -42,11 +43,19 @@ async def classify_triz(
         ]
     ).partial(principles_list=principles_text)
 
+    # Combine keyword and problem_description for classification
+    combined_problem = problem_description
+    if keyword:
+        if combined_problem:
+            combined_problem = f"{combined_problem} (키워드: {keyword})"
+        else:
+            combined_problem = keyword
+
     field_context = f"기술 분야: {technical_field}" if technical_field else ""
     chain = prompt | llm
     response = await chain.ainvoke(
         {
-            "problem_description": problem_description,
+            "problem_description": combined_problem,
             "field_context": field_context,
         }
     )

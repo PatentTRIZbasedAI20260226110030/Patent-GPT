@@ -257,12 +257,12 @@ async def test_sse_happy_path():
 
 @pytest.mark.asyncio
 async def test_sse_empty_input_validation():
-    """Empty problem_description returns 422 validation error."""
+    """Empty problem_description and no keyword returns 422 validation error."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/v1/patent/generate/stream",
-            json={"problem_description": ""},
+            json={"problem_description": "", "keyword": None},
         )
 
     assert response.status_code == 422
