@@ -24,6 +24,7 @@ ENV/
 .env
 .env.*
 !.env.example
+frontend/.env.local
 *.key
 *.pem
 *.p12
