@@ -25,7 +25,35 @@ async def classify_triz(
     technical_field: str,
     settings: Settings,
 ) -> list[TRIZPrinciple]:
-    """Classify problem into top-3 TRIZ principles using Gemini."""
+    """Classify problem into top-3 TRIZ principles.
+
+    Routes to ML or LLM classifier based on settings.TRIZ_ROUTER.
+    """
+    if settings.TRIZ_ROUTER == "ml":
+        return _classify_triz_ml(problem_description, settings)
+
+    return await _classify_triz_llm(
+        problem_description, technical_field, settings
+    )
+
+
+def _classify_triz_ml(
+    problem_description: str,
+    settings: Settings,
+) -> list[TRIZPrinciple]:
+    """Classify using trained ML model."""
+    from app.services.ml_classifier import MLTrizClassifier
+
+    classifier = MLTrizClassifier(settings.ML_MODEL_PATH)
+    return classifier.predict(problem_description, top_k=3)
+
+
+async def _classify_triz_llm(
+    problem_description: str,
+    technical_field: str,
+    settings: Settings,
+) -> list[TRIZPrinciple]:
+    """Classify using Gemini LLM."""
     llm = ChatGoogleGenerativeAI(
         model=settings.GEMINI_MODEL,
         google_api_key=settings.GOOGLE_API_KEY,

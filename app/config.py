@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     RETRIEVAL_TOP_K: int = 20
     RERANK_TOP_K: int = 5
 
+    # TRIZ classifier routing
+    TRIZ_ROUTER: str = "llm"  # "llm" or "ml"
+    ML_MODEL_PATH: str = "./data/models/triz_classifier.joblib"
+
     # ChromaDB
     CHROMA_PERSIST_DIR: str = "./data/chromadb"
 
