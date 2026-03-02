@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     RETRIEVAL_TOP_K: int = 20
     RERANK_TOP_K: int = 5
 
+    # Evaluation
+    FAITHFULNESS_THRESHOLD: float = 0.8
+    ENABLE_AUTO_EVALUATION: bool = False
+
     # ChromaDB
     CHROMA_PERSIST_DIR: str = "./data/chromadb"
 

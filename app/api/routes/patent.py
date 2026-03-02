@@ -6,10 +6,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sse_starlette.sse import EventSourceResponse
 
-from app.api.schemas.request import PatentGenerateRequest, PatentSearchRequest
+from app.api.schemas.request import (
+    PatentEvaluateRequest,
+    PatentGenerateRequest,
+    PatentSearchRequest,
+)
 from app.api.schemas.response import PatentGenerateResponse, PatentSearchResponse
 from app.config import Settings, get_settings
+from app.models.evaluation import EvaluationResult
 from app.models.state import AgentState
+from app.services.evaluation_service import evaluate_pipeline_output
 from app.services.patent_searcher import PatentSearcher
 from app.services.patent_service import PatentService
 from app.services.reasoning_agent import PatentPipeline
@@ -145,6 +151,25 @@ async def search_patents(
     try:
         results = await searcher.search(request.query, top_k=request.top_k)
         return PatentSearchResponse(results=results)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/evaluate", response_model=EvaluationResult)
+async def evaluate_patent(
+    request: PatentEvaluateRequest,
+    settings: Settings = Depends(get_settings),
+):
+    """Run RAGAS evaluation on a pipeline result."""
+    try:
+        reference = request.reference or request.generated_idea
+        return await evaluate_pipeline_output(
+            user_problem=request.user_problem,
+            generated_idea=request.generated_idea,
+            retrieved_contexts=request.retrieved_contexts,
+            reference=reference,
+            settings=settings,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
