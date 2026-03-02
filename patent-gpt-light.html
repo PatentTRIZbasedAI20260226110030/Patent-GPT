@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patent-GPT UI/UX — Light Professional</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Pretendard';
+  src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap');
+}
+
+:root {
+  --white: #ffffff;
+  --bg: #f7f8fa;
+  --bg-warm: #fafafa;
+  --surface: #ffffff;
+  --surface-alt: #f2f3f5;
+  --border: #e5e7eb;
+  --border-light: #eef0f2;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-bg: #eff6ff;
+  --primary-border: #bfdbfe;
+  --primary-text: #1e40af;
+  --accent: #059669;
+  --accent-bg: #ecfdf5;
+  --accent-border: #a7f3d0;
+  --accent-text: #065f46;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --warning-text: #92400e;
+  --error: #dc2626;
+  --text: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --text-faint: #d1d5db;
+  --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #eef0f4;
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.canvas {
+  padding: 48px 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  justify-content: center;
+}
+
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.page-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.page-label span { color: var(--primary); }
+
+/* Phone Frame */
+.phone {
+  width: 390px;
+  height: 844px;
+  background: var(--white);
+  border-radius: 44px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.02);
+}
+
+.statusbar {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white);
+}
+
+.notch {
+  width: 126px;
+  height: 34px;
+  background: #000;
+  border-radius: 20px;
+}
+
+.scroll {
+  height: 746px;
+  overflow-y: auto;
+  padding-bottom: 50px;
+}
+
+.scroll::-webkit-scrollbar { width: 0; }
+
+.homebar {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  background: #c4c4c4;
+  border-radius: 3px;
+}
+
+/* Common */
+.p { padding: 24px; }
+
+.tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.tag-primary { color: var(--primary); }
+.tag-accent { color: var(--accent); }
+.tag-warning { color: var(--warning); }
+
+h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  letter-spacing: -0.3px;
+}
+
+.desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 6px;
+}
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.btn-fill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--primary);
+  color: #fff;
+  padding: 14px 24px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.api-tag {
+  display: inline-block;
+  background: var(--primary-bg);
+  border: 1px dashed var(--primary-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--primary-text);
+  margin-top: 12px;
+}
+
+.input-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 13px 14px;
+  font-size: 14px;
+  color: var(--text-muted);
+  width: 100%;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.progress-track {
+  height: 4px;
+  background: var(--surface-alt);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress-fill { height: 100%; border-radius: 2px; }
+
+.divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 16px 0;
+}
+
+/* ================================
+   PAGE 1: LANDING
+   ================================ */
+
+.landing-top {
+  padding: 40px 28px 32px;
+  background: linear-gradient(180deg, #f0f5ff 0%, #fff 100%);
+  text-align: center;
+}
+
+.brand-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -1px;
+}
+
+.brand-name em {
+  font-style: normal;
+  color: var(--primary);
+}
+
+.brand-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  line-height: 1.7;
+}
+
+.cta-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.steps-bar {
+  margin: 0 20px;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.steps-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.step-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.step-n {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.step-t {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.step-arrow {
+  color: var(--text-faint);
+  font-size: 10px;
+  margin: 0 2px;
+}
+
+.vals {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin: 16px 20px 0;
+}
+
+.val-item {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 10px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+
+.val-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.val-icon.a { background: var(--primary-bg); color: var(--primary); }
+.val-icon.b { background: var(--accent-bg); color: var(--accent); }
+.val-icon.c { background: #fef3c7; color: #b45309; }
+
+.val-t {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.val-d {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* ================================
+   PAGE 3: LOADING
+   ================================ */
+
+.stage {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  margin-bottom: 6px;
+}
+
+.stage.done { border-color: var(--accent-border); background: var(--accent-bg); }
+.stage.active { border-color: var(--primary-border); background: var(--primary-bg); }
+
+.stage-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+.stage-ic.done { background: var(--accent); color: #fff; }
+.stage-ic.active { background: var(--primary); color: #fff; }
+.stage-ic.wait { background: var(--surface-alt); color: var(--text-muted); }
+
+.stage-body { flex: 1; }
+.stage-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.stage-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+.stage-st {
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.log-box {
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.log-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.log-row {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 2;
+  padding: 0 2px;
+}
+
+/* ================================
+   PAGE 4: TRIZ
+   ================================ */
+
+.triz-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-card);
+}
+
+.triz-n {
+  min-width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--primary-bg);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.triz-body { flex: 1; }
+
+.triz-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.triz-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.triz-pct {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.pct-high { background: var(--accent-bg); color: var(--accent-text); }
+.pct-mid { background: var(--primary-bg); color: var(--primary-text); }
+
+.triz-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.idea-box {
+  margin-top: 14px;
+  padding: 18px;
+  background: var(--primary-bg);
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-lg);
+}
+
+.idea-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.idea-body {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+/* ================================
+   PAGE 5: SIMILAR
+   ================================ */
+
+.alert-strip {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.alert-strip.warn {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+}
+
+.alert-ic {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #fde68a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.alert-t { font-size: 13px; font-weight: 600; color: var(--warning-text); }
+.alert-d { font-size: 11px; color: var(--text-secondary); }
+
+.pat-card {
+  padding: 14px;
+  background: var(--white);
+  border-radius: var(--radius-md);
+  margin-bottom: 6px;
+  box-shadow: var(--shadow-card);
+}
+
+.pat-card.alert { border: 1px solid var(--warning-border); }
+.pat-card.ok { border: 1px solid var(--border); }
+
+.pat-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pat-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.pat-id { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.pat-sim {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.sim-h { color: var(--warning); }
+.sim-m { color: var(--primary); }
+.sim-l { color: var(--accent); }
+
+.pat-field { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
+
+/* ================================
+   PAGE 6: EVASION
+   ================================ */
+
+.attempts {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.att {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.att.fail { background: var(--warning-bg); border: 1px solid var(--warning-border); }
+.att.pass { background: var(--accent-bg); border: 1px solid var(--accent-border); }
+.att.skip { background: var(--surface-alt); border: 1px solid var(--border); }
+
+.att-label { font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+
+.att-val {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.att-st { font-size: 9px; font-weight: 700; margin-top: 2px; }
+
+.trace-box {
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.trace-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.trace-row {
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 1px;
+}
+
+.trace-row:nth-child(even) { background: var(--white); }
+
+/* ================================
+   PAGE 7: DRAFT
+   ================================ */
+
+.draft-paper {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px;
+  box-shadow: var(--shadow-md);
+  max-height: 380px;
+  overflow: hidden;
+  position: relative;
+}
+
+.draft-paper::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(transparent, #fff);
+}
+
+.dp-kipo { text-align: center; font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+
+.dp-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 18px;
+  line-height: 1.4;
+}
+
+.dp-sec {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 3px;
+  margin-top: 14px;
+}
+
+.dp-sec:first-of-type { margin-top: 0; }
+
+.dp-text {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+
+/* ================================
+   PAGE 8: DOWNLOAD
+   ================================ */
+
+.dl-center {
+  padding: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 680px;
+}
+
+.dl-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.dl-icon svg {
+  width: 32px;
+  height: 32px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.file-box {
+  margin: 28px 0;
+  padding: 24px 28px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 260px;
+}
+
+.fb-icon {
+  width: 44px;
+  height: 56px;
+  background: var(--primary-bg);
+  border: 1px solid var(--primary-border);
+  border-radius: 6px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.fb-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.fb-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+.fb-btn {
+  margin-top: 16px;
+  background: var(--primary);
+  color: #fff;
+  padding: 11px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+}
+
+.dl-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* ================================
+   PAGE 9: SEARCH
+   ================================ */
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.search-in {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 13px 16px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.search-go {
+  background: var(--primary);
+  color: #fff;
+  padding: 13px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sr-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 5px;
+  box-shadow: var(--shadow-card);
+}
+
+.sr-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.sr-id { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+
+.sr-action {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+/* ================================
+   SECTION HEADER
+   ================================ */
+
+.canvas-header {
+  text-align: center;
+  padding: 48px 20px 12px;
+}
+
+.canvas-header h1 {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.canvas-header h1 em { font-style: normal; color: var(--primary); }
+
+.canvas-header p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.flow-bar {
+  text-align: center;
+  padding: 0 20px 36px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.flow-bar .p { color: var(--primary); }
+.flow-bar .a { color: var(--accent); }
+.flow-bar .w { color: var(--warning); }
+
+/* Spec Footer */
+.spec-footer {
+  max-width: 880px;
+  margin: 48px auto;
+  padding: 0 32px 64px;
+}
+
+.spec-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.spec-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.spec-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.spec-body {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 2;
+}
+</style>
+</head>
+<body>
+
+<div class="canvas-header">
+  <h1>Patent<em>GPT</em> UI/UX</h1>
+  <p>9 Screens · API Integrated · Figma Import Ready</p>
+</div>
+
+<div class="flow-bar">
+  <span class="p">Landing</span> → <span class="p">Input</span> → <span class="p">Loading</span> → <span class="p">TRIZ</span> → <span class="p">Similar</span> → <span class="w">Evasion?</span> → <span class="p">Draft</span> → <span class="a">Download</span> &nbsp;|&nbsp; <span class="a">Search</span>
+</div>
+
+<div class="canvas">
+
+<!-- ===== 01: LANDING ===== -->
+<div class="page-wrapper">
+  <div class="page-label">01 · <span>Landing</span></div>
+  <div class="phone">
+    <div class="statusbar"><div class="notch"></div></div>
+    <div class="scroll">
+
+      <div class="landing-top">
+        <div class="tag tag-primary">TRIZ 기반 특허 AI</div>
+        <div class="brand-name">Patent<em>GPT</em></div>
+        <div class="brand-sub">문제를 설명하면 TRIZ 40 발명원리 기반으로<br>특허 아이디어를 생성하고 명세서를 작성합니다</div>
+        <div class="cta-row">
+          <div class="btn-fill">아이디어 생성</div>
+          <div class="btn-ghost">선행기술 검색</div>
+        </div>
+      </div>
+
+      <div class="steps-bar">
+        <div class="steps-row">
+          <div class="step-chip"><div class="step-n">1</div><div class="step-t">TRIZ 분류</div></div>
+          <div class="step-arrow">→</div>
+          <div class="step-chip"><div class="step-n">2</div><div class="step-t">선행기술</div></div>
+          <div class="step-arrow">→</div>
+          <div class="step-chip"><div class="step-n">3</div><div class="step-t">회피설계</div></div>
+          <div class="step-arrow">→</div>
+          <div class="step-chip"><div class="step-n">4</div><div class="step-t">명세서</div></div>
+        </div>
+      </div>
+
+      <div class="vals">
+        <div class="val-item">
+          <div class="val-icon a">T</div>
+          <div class="val-t">아이디어 발굴</div>
+          <div class="val-d">TRIZ 40원리 기반 체계적 생성</div>
+        </div>
+        <div class="val-item">
+          <div class="val-icon b">S</div>
+          <div class="val-t">유사도 검증</div>
+          <div class="val-d">Hybrid Search + Reranking</div>
+        </div>
+        <div class="val-item">
+          <div class="val-icon c">D</div>
+          <div class="val-t">명세서 초안</div>
+          <div class="val-d">KIPO 형식 DOCX 자동 생성</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+<!-- ===== 02: INPUT ===== -->
+<div class="page-wrapper">
+  <div class="page-label">02 · <span>Problem Input</span></div>
+  <div class="phone">
+    <div class="statusbar"><div class="notch"></div></div>
+    <div class="scroll">
+      <div class="p">
+        <div class="tag tag-primary">STEP 1 OF 4</div>
+        <h2>문제를 설명해주세요</h2>
+        <div class="desc">해결하고 싶은 기술적 문제나 모순을 자유롭게 작성하세요</div>
+
+        <div style="margin-top:20px;">
+          <div class="label">문제 설명 <span style="color:var(--error)">*</span></div>
+          <div class="input-box" style="min-height:100px; line-height:1.7;">예: 기기를 얇게 유지하면서 발열을 줄여야 한다...</div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:12px;">선택 입력</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <div class="label">기술 분야</div>
+              <div class="input-box" style="font-size:13px;">예: 전자기기</div>
+            </div>
+            <div>
+              <div class="label">최대 회피설계 횟수</div>
+              <div class="input-box" style="font-size:13px; display:flex; justify-content:space-between;">
+                <span style="color:var(--text)">3</span>
+                <span style="font-size:10px; color:var(--text-muted)">1~5회</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; background:var(--primary-bg); border:1px dashed var(--primary-border); border-radius:var(--radius-md); padding:12px 14px;">
+          <div style="font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--primary-text); margin-bottom:6px;">API: POST /api/v1/patent/generate</div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); line-height:1.7; white-space:pre;">{
+  "problem_description": "string",
+  "technical_field": "string",
+  "max_evasion_attempts": 3
+}</div>
+        </div>
+
+        <div class="btn-fill" style="width:100%; margin-top:14px;">분석 시작</div>
+      </div>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+<!-- ===== 03: LOADING ===== -->
+<div class="page-wrapper">
+  <div class="page-label">03 · <span>Analysis Loading</span></div>
+  <div class="phone">
+    <div class="statusbar"><div class="notch"></div></div>
+    <div class="scroll">
+      <div class="p">
+        <div style="text-align:center; margin-bottom:28px;">
+          <h2 style="font-size:20px;">AI 분석 진행 중</h2>
+          <div class="desc">4단계 파이프라인을 순차 실행합니다</div>
+        </div>
+
+        <div class="stage done">
+          <div class="stage-ic done">✓</div>
+          <div class="stage-body">
+            <div class="stage-name">Stage 1: TRIZ 분류</div>
+            <div class="stage-sub">문제 → TRIZ 발명원리 매핑</div>
+          </div>
+          <div class="stage-st" style="color:var(--accent);">완료</div>
+        </div>
+
+        <div class="stage active">
+          <div class="stage-ic active">2</div>
+          <div class="stage-body">
+            <div class="stage-name">Stage 2: 선행기술 검색</div>
+            <div class="stage-sub">BM25 + ChromaDB + Cross-Encoder</div>
+          </div>
+          <div class="stage-st" style="color:var(--primary);">처리중</div>
+        </div>
+
+        <div class="stage">
+          <div class="stage-ic wait">3</div>
+          <div class="stage-body">
+            <div class="stage-name" style="color:var(--text-muted)">Stage 3: 추론 에이전트</div>
+            <div class="stage-sub">유사도 검증 + 회피설계 루프</div>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="stage-ic wait">4</div>
+          <div class="stage-body">
+            <div class="stage-name" style="color:var(--text-muted)">Stage 4: 명세서 생성</div>
+            <div class="stage-sub">Pydantic + python-docx</div>
+          </div>
+        </div>
+
+        <div class="log-box">
+          <div class="log-title">실시간 추론 로그</div>
+          <div class="log-row" style="color:var(--accent)">✓ [TRIZ] 원리 #35, #28 매핑 완료</div>
+          <div class="log-row" style="color:var(--primary)">→ [검색] KIPRISplus 조회 중...</div>
+          <div class="log-row" style="color:var(--text-muted)">○ [추론] 대기 중</div>
+          <div class="log-row" style="color:var(--text-muted)">○ [생성] 대기 중</div>
+        </div>
+      </div>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+<!-- ===== 04: TRIZ ===== -->
+<div class="page-wrapper">
+  <div class="page-label">04 · <span>TRIZ Results</span></div>
+  <div class="phone">
+    <div class="statusbar"><div class="notch"></div></div>
+    <div class="scroll">
+      <div class="p">
+        <div class="tag tag-accent">ANALYSIS COMPLETE</div>
+        <h2 style="font-size:20px;">TRIZ 분석 결과</h2>
+        <div class="desc" style="margin-bottom:16px;">적용된 발명원리와 매칭률</div>
+
+        <div class="triz-item">
+          <div class="triz-n">35</div>
+          <div class="triz-body">
+            <div class="triz-top">
+              <div class="triz-title">파라미터 변환</div>
+              <div class="triz-pct pct-high">94%</div>
+            </div>
+            <div class="triz-desc">물체의 물리적 상태, 농도, 밀도, 유연도, 온도 등을 변경한다</div>
+          </div>
+        </div>
+
+        <div class="triz-item">
+          <div class="triz-n">28</div>
+          <div class="triz-body">
+            <div class="triz-top">
+              <div class="triz-title">기계 시스템 대체</div>
+              <div class="triz-pct pct-mid">87%</div>
+            </div>
+            <div class="triz-desc">기계적 수단을 광학, 음향, 열적 수단으로 대체한다</div>
+          </div>
+        </div>
+
+        <div class="triz-item">
+          <div class="triz-n">15</div>
+          <div class="triz-body">
+            <div class="triz-top">
+              <div class="triz-title">역학적 성질 변화</div>
+              <div class="triz-pct pct-mid">72%</div>
+            </div>
+            <div class="triz-desc">물체 또는 환경의 역학적 성질을 변경한다</div>
+          </div>
+        </div>
+
+        <div class="idea-box">
+          <div class="idea-label">생성된 아이디어</div>
+          <div class="idea-body">그래핀 기반 나노구조 방열 시트를 적용하여, 기기 두께를 0.3mm 이하로 유지하면서 열전도율을 기존 대비 300% 향상시키는 복합 방열 구조</div>
+        </div>
+
+        <div class="btn-fill" style="width:100%; margin-top:14px;">선행기술 확인</div>
+        <div class="api-tag">Response: triz_principles[] · matching_score</div>
+      </div>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+<!-- ===== 05: SIMILAR ===== -->
+<div class="page-wrapper">
+  <div class="page-label">05 · <span>Similar Patents</span></div>
+  <div class="phone">
+    <div class="statusbar"><div class="notch"></div></div>
+    <div class="scroll">
+      <div class="p">
+        <div class="tag tag-warning">PRIOR ART SEARCH</div>
+        <h2 style="font-size:20px;">유사 선행기술</h2>
+        <div class="desc" style="margin-bottom:14px;">Hybrid Search + Cross-Encoder 리랭킹</div>
+
+        <div class="alert-strip warn">
+          <div class="alert-ic">!</div>
+          <div>
+            <div class="alert-t">유사도 80% 초과 감지</div>
+            <div class="alert-d">회피설계가 자동 실행됩니다</div>
+          </div>
+        </div>
+
+        <div class="pat-card alert">
+          <div class="pat-top">
+            <div>
+              <div class="pat-title">나노 복합 방열 시트</div>
+              <div class="pat-id">10-2024-0012345</div>
+            </div>
+            <div class="pat-sim sim-h">85%</div>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:85%; background:var(--warning);"></div></div>
+          <div class="pat-field">분야: 전자기기 방열</div>
+        </div>
+
+        <div class="pat-card ok">
+          <div class="pat-top">
+            <div>
+              <div class="pat-title">그래핀 열전도 필름</div>
+              <div class="pat-id">10-2023-0098765</div>
+            </div>
+            <div class="pat-sim sim-m">72%</div>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:72%; background:var(--primary);"></div></div>
+          <div class="pat-field">분야: 소재공학</div>
+        </div>
+
+        <div class="pat-card ok">
+          <div class="pat-top">
+            <div>
+              <div class="pat-title">초박형 방열 구조체</div>
+              <div class="pat-id">10-2024-0045678</div>
+            </div>
+            <div class="pat-sim sim-l">64%</div>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:64%; background:var(--accent);"></div></div>
+          <div class="pat-field">분야: 모바일 디바이스</div>
+        </div>
+
+        <div class="api-tag">Response: similar_patents[] · similarity_score · threshold: 0.8</div>
+      </div>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+<!-- ===== 06: EVASION ===== -->
+<div class="page-wrapper">
+  <div class="page-label">06 · <span>Evasion Design</span></div>
+  <div class="phone">
+    <div class="statusbar"><div class="notch"></div></div>
+    <div class="scroll">
+      <div class="p">
+        <div class="tag tag-warning">EVASION DESIGN LOOP</div>
+        <h2 style="font-size:20px;">회피설계 진행</h2>
+        <div class="desc" style="margin-bottom:16px;">LangGraph Agent 자동 대안 설계</div>
+
+        <div class="attempts">
+          <div class="att fail">
+            <div class="att-label">시도 1</div>
+            <div class="att-val" style="color:var(--warning);">85%</div>
+            <div class="att-st" style="color:var(--warning);">초과</div>
+          </div>
+          <div class="att pass">
+            <div class="att-label">시도 2</div>
+            <div class="att-val" style="color:var(--accent);">67%</div>
+            <div class="att-st" style="color:var(--accent);">통과</div>
+          </div>
+          <div class="att skip">
+            <div class="att-label">시도 3</div>
+            <div class="att-val" style="color:var(--text-muted);">—</div>
+            <div class="att-st" style="color:var(--text-muted);">불필요</div>
+          </div>
+        </div>
+
+        <div class="trace-box">
+          <div class="trace-title">추론 과정 (reasoning_trace)</div>
+          <div class="trace-row" style="color:var(--error)">× [시도 1] 기존 아이디어 유사도 85% → 초과</div>
+          <div class="trace-row" style="color:var(--primary)">→ [회피] TRIZ #35 적용 → PCM 상변화 물질 전환</div>
+          <div class="trace-row" style="color:var(--accent)">✓ [재검증] 수정 아이디어 유사도 67% → 통과</div>
+          <div class="trace-row" style="color:var(--accent)">● [완료] 회피설계 성공 → Stage 4 전환</div>
+        </div>
+
+        <div class="api-tag">LangGraph State: reasoning_trace[] · max_attempts: 3</div>
+        <div class="btn-fill" style="width:100%; margin-top:14px;">명세서 생성</div>
+      </div>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+<!-- ===== 07: DRAFT ===== -->
+<div class="page-wrapper">
+  <div class="page-label">07 · <span>Patent Draft</span></div>
+  <div class="phone">
+    <div class="statusbar"><div class="notch"></div></div>
+    <div class="scroll">
+      <div class="p">
+        <div class="tag tag-accent">PATENT DRAFT GENERATED</div>
+        <h2 style="font-size:20px;">특허 명세서 초안</h2>
+        <div class="desc" style="margin-bottom:14px;">Pydantic 구조화 출력 · KIPO 형식</div>
+
+        <div class="draft-paper">
+          <div class="dp-kipo">특허출원서</div>
+          <div class="dp-title">상변화 물질을 이용한 초박형 적응형 방열 장치 및 그 제조 방법</div>
+          <div class="dp-sec">요약</div>
+          <div class="dp-text">본 발명은 상변화 물질(PCM)을 마이크로캡슐화하여 전자기기 내부에 적용함으로써, 기기의 두께를 최소화하면서도 효과적인 열 관리를 가능하게 하는 방열 장치에 관한 것이다.</div>
+          <div class="dp-sec">기술분야</div>
+          <div class="dp-text">본 발명은 전자기기의 열 관리 분야에 관한 것으로, 더 상세하게는 상변화 물질 기반의 초박형 방열 구조에 관한 것이다.</div>
+          <div class="dp-sec">해결하고자 하는 과제</div>
+          <div class="dp-text">종래의 방열 기술은 히트싱크의 부피가 크거나, 방열 성능이 기기 두께에 비례하는 한계가 있었다.</div>
+          <div class="dp-sec">청구항 1</div>
+          <div class="dp-text">전자기기 내부에 배치되는 방열 장치에 있어서, 상변화 물질이 마이크로캡슐에 봉입된 방열층과...</div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <div class="btn-fill" style="flex:1;">DOCX 다운로드</div>
+          <div class="btn-ghost">재생성</div>
+        </div>
+        <div class="api-tag">Response: patent_draft{} → GET /patent/{draft_id}/docx</div>
+      </div>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+<!-- ===== 08: DOWNLOAD ===== -->
+<div class="page-wrapper">
+  <div class="page-label">08 · <span>Download</span></div>
+  <div class="phone">
+    <div class="statusbar"><div class="notch"></div></div>
+    <div class="scroll">
+      <div class="dl-center">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h2 style="font-size:24px;">생성 완료</h2>
+        <div class="desc">특허 명세서 초안이 성공적으로 생성되었습니다</div>
+
+        <div class="file-box">
+          <div class="fb-icon">.docx</div>
+          <div class="fb-name">patent_draft_ab12cd34.docx</div>
+          <div class="fb-meta">KIPO 형식 · 2.3 KB</div>
+          <div class="fb-btn">다운로드</div>
+        </div>
+
+        <div class="api-tag">API: GET /api/v1/patent/{draft_id}/docx → binary</div>
+
+        <div class="dl-actions">
+          <div class="btn-ghost">새로운 분석</div>
+          <div class="btn-ghost">결과 공유</div>
+        </div>
+      </div>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+<!-- ===== 09: SEARCH ===== -->
+<div class="page-wrapper">
+  <div class="page-label">09 · <span>Quick Search</span></div>
+  <div class="phone">
+    <div class="statusbar"><div class="notch"></div></div>
+    <div class="scroll">
+      <div class="p">
+        <div class="tag tag-primary">QUICK SEARCH</div>
+        <h2 style="font-size:20px;">선행기술 검색</h2>
+        <div class="desc" style="margin-bottom:16px;">전체 파이프라인 없이 독립 검색</div>
+
+        <div class="search-row">
+          <div class="search-in">방열 구조...</div>
+          <div class="search-go">검색</div>
+        </div>
+
+        <div style="background:var(--primary-bg); border:1px dashed var(--primary-border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:14px;">
+          <div style="font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--primary-text); margin-bottom:4px;">API: POST /api/v1/patent/search</div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-secondary);">{ "query": "방열 구조" }</div>
+        </div>
+
+        <div class="sr-item">
+          <div><div class="sr-title">나노 복합 방열 시트 특허</div><div class="sr-id">10-2024-0012345</div></div>
+          <div class="sr-action">상세보기</div>
+        </div>
+        <div class="sr-item">
+          <div><div class="sr-title">그래핀 열전도 필름 구조</div><div class="sr-id">10-2023-0098765</div></div>
+          <div class="sr-action">상세보기</div>
+        </div>
+        <div class="sr-item">
+          <div><div class="sr-title">초박형 열 분산 장치</div><div class="sr-id">10-2024-0045678</div></div>
+          <div class="sr-action">상세보기</div>
+        </div>
+        <div class="sr-item">
+          <div><div class="sr-title">PCM 기반 방열 모듈</div><div class="sr-id">10-2023-0056789</div></div>
+          <div class="sr-action">상세보기</div>
+        </div>
+        <div class="sr-item">
+          <div><div class="sr-title">마이크로 채널 냉각 구조</div><div class="sr-id">10-2024-0078901</div></div>
+          <div class="sr-action">상세보기</div>
+        </div>
+
+        <div class="btn-ghost" style="width:100%; justify-content:center; margin-top:16px;">이 키워드로 아이디어 생성 →</div>
+      </div>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</div>
+
+</div>
+
+<!-- Design Spec -->
+<div class="spec-footer">
+  <div class="spec-title">Design Specifications</div>
+  <div class="spec-grid">
+    <div class="spec-card">
+      <div class="spec-label">Colors</div>
+      <div class="spec-body">
+        Background: #f7f8fa<br>
+        Surface: #ffffff<br>
+        Border: #e5e7eb<br>
+        Primary: #2563eb<br>
+        Accent: #059669<br>
+        Warning: #d97706<br>
+        Text: #111827<br>
+        Text Secondary: #4b5563
+      </div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Typography</div>
+      <div class="spec-body">
+        Body: Noto Sans KR (400~700)<br>
+        Mono: IBM Plex Mono (500~700)<br>
+        Frame: 390 × 844 (iPhone 14)<br>
+        Border Radius: 6/10/14/18px<br>
+        Page Padding: 24px<br>
+        Shadow: 0 1px 3px rgba(0,0,0,0.04)
+      </div>
+    </div>
+    <div class="spec-card" style="grid-column:span 2;">
+      <div class="spec-label">API Endpoints</div>
+      <div class="spec-body">
+        POST /api/v1/patent/generate → Pages 02~08 (full pipeline)<br>
+        POST /api/v1/patent/search → Page 09 (standalone search)<br>
+        GET  /api/v1/patent/{draft_id}/docx → Page 08 (DOCX download)<br>
+        GET  /api/v1/health → Health check
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
