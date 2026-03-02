@@ -104,7 +104,10 @@ class PatentPipeline:
 
     async def _classify_triz_node(self, state: AgentState) -> dict:
         principles = await classify_triz(
-            state["user_problem"], state["technical_field"], self.settings
+            state["user_problem"],
+            state["technical_field"],
+            self.settings,
+            keyword=state.get("keyword"),
         )
         return {
             "triz_principles": principles,
@@ -115,6 +118,9 @@ class PatentPipeline:
 
     async def _search_internal_node(self, state: AgentState) -> dict:
         query = state["user_problem"]
+        keyword = state.get("keyword", "")
+        if keyword:
+            query = f"{keyword} {query}".strip()
         if state["current_idea"]:
             query = f"{query} {state['current_idea'][:200]}"
         results = await self.patent_searcher.search(query)
@@ -164,7 +170,7 @@ class PatentPipeline:
         }
 
     async def _search_kipris_node(self, state: AgentState) -> dict:
-        keyword = state["user_problem"][:50]
+        keyword = state.get("keyword") or state["user_problem"][:50]
         patents = await self.kipris_client.search_patents(keyword, num_of_rows=20)
         kipris_as_patents = [
             SimilarPatent(

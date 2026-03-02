@@ -18,12 +18,14 @@ const TECHNICAL_FIELDS = [
 interface PatentFormProps {
   onSubmit: (data: {
     problem_description: string;
+    keyword?: string;
     technical_field?: string;
     max_evasion_attempts?: number;
   }) => void;
   isLoading?: boolean;
   initialValues?: {
     problem_description?: string;
+    keyword?: string;
     technical_field?: string;
     max_evasion_attempts?: number;
   } | null;
@@ -31,6 +33,7 @@ interface PatentFormProps {
 
 export function PatentForm({ onSubmit, isLoading, initialValues }: PatentFormProps) {
   const [problemDescription, setProblemDescription] = useState(initialValues?.problem_description ?? "");
+  const [keyword, setKeyword] = useState(initialValues?.keyword ?? "");
   const [technicalField, setTechnicalField] = useState(initialValues?.technical_field ?? "");
   const [maxEvasionAttempts, setMaxEvasionAttempts] = useState(initialValues?.max_evasion_attempts ?? 3);
   const [error, setError] = useState<string | null>(null);
@@ -39,14 +42,16 @@ export function PatentForm({ onSubmit, isLoading, initialValues }: PatentFormPro
     e.preventDefault();
     setError(null);
 
-    const trimmed = problemDescription.trim();
-    if (!trimmed) {
-      setError("문제 설명을 입력해 주세요.");
+    const trimmedProblem = problemDescription.trim();
+    const trimmedKeyword = keyword.trim();
+    if (!trimmedProblem && !trimmedKeyword) {
+      setError("문제 설명 또는 키워드 중 하나는 입력해 주세요.");
       return;
     }
 
     onSubmit({
-      problem_description: trimmed,
+      problem_description: trimmedProblem,
+      keyword: trimmedKeyword || undefined,
       technical_field: technicalField || undefined,
       max_evasion_attempts: maxEvasionAttempts,
     });
@@ -54,13 +59,32 @@ export function PatentForm({ onSubmit, isLoading, initialValues }: PatentFormPro
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Keyword */}
+      <div>
+        <label
+          htmlFor="keyword"
+          className="block text-label text-text-secondary mb-2"
+        >
+          키워드
+        </label>
+        <input
+          id="keyword"
+          type="text"
+          className="w-full rounded-lg border border-border-default bg-bg-primary px-4 py-3 text-body-m text-text-primary placeholder:text-text-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          placeholder="검색 키워드를 입력하세요. 예: 방열 구조체"
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          disabled={isLoading}
+        />
+      </div>
+
       {/* Problem Description */}
       <div>
         <label
           htmlFor="problem"
           className="block text-label text-text-secondary mb-2"
         >
-          문제 설명 <span className="text-error">*</span>
+          문제 설명
         </label>
         <Textarea
           id="problem"
@@ -69,7 +93,6 @@ export function PatentForm({ onSubmit, isLoading, initialValues }: PatentFormPro
           onChange={(e) => setProblemDescription(e.target.value)}
           aria-invalid={!!error}
           disabled={isLoading}
-          minLength={1}
         />
         {error && (
           <p className="mt-2 text-body-m text-error" role="alert">

@@ -9,7 +9,7 @@ from sse_starlette.sse import EventSourceResponse
 from app.api.schemas.request import PatentGenerateRequest, PatentSearchRequest
 from app.api.schemas.response import PatentGenerateResponse, PatentSearchResponse
 from app.config import Settings, get_settings
-from app.models.state import AgentState
+from app.models.state import build_initial_state
 from app.services.patent_searcher import PatentSearcher
 from app.services.patent_service import PatentService
 from app.services.reasoning_agent import PatentPipeline
@@ -39,6 +39,7 @@ async def generate_patent(
     try:
         return await service.generate(
             problem_description=request.problem_description,
+            keyword=request.keyword,
             technical_field=request.technical_field,
             max_evasion_attempts=request.max_evasion_attempts,
         )
@@ -54,24 +55,12 @@ async def generate_patent_stream(
 ):
     """SSE endpoint that streams step-by-step LangGraph state updates."""
 
-    initial_state: AgentState = {
-        "user_problem": request.problem_description,
-        "technical_field": request.technical_field or "",
-        "triz_principles": [],
-        "current_idea": "",
-        "similar_patents": [],
-        "max_similarity_score": 0.0,
-        "novelty_score": 0.0,
-        "novelty_reasoning": "",
-        "context_sufficient": False,
-        "evasion_count": 0,
-        "max_evasion_attempts": request.max_evasion_attempts,
-        "final_idea": "",
-        "reasoning_trace": [],
-        "current_step": "",
-        "patent_draft": None,
-        "docx_path": None,
-    }
+    initial_state = build_initial_state(
+        problem_description=request.problem_description,
+        keyword=request.keyword or "",
+        technical_field=request.technical_field or "",
+        max_evasion_attempts=request.max_evasion_attempts,
+    )
 
     async def event_generator():
         accumulated = dict(initial_state)
