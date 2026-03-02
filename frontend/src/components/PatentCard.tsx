@@ -21,8 +21,8 @@ export function PatentCard({ patent, className }: PatentCardProps) {
   return (
     <div
       className={cn(
-        "rounded-card border bg-bg-surface p-5",
-        isHighSimilarity ? "border-warning" : "border-border",
+        "rounded-card border bg-bg-surface p-5 shadow-card",
+        isHighSimilarity ? "border-warning-border" : "border-border",
         className
       )}
     >
@@ -42,7 +42,7 @@ export function PatentCard({ patent, className }: PatentCardProps) {
       <div className="space-y-1">
         <div className="flex justify-between text-caption text-text-muted">
           <span>유사도</span>
-          <span>{scorePercent}%</span>
+          <span className="font-mono text-xl font-extrabold">{scorePercent}%</span>
         </div>
         <div className="h-2 w-full rounded-full bg-bg-elevated overflow-hidden">
           <div
@@ -52,7 +52,7 @@ export function PatentCard({ patent, className }: PatentCardProps) {
         </div>
       </div>
       {patent.application_number && (
-        <p className="text-caption text-text-muted mt-2">
+        <p className="text-caption text-text-muted mt-2 font-mono">
           {patent.application_number}
         </p>
       )}

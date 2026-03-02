@@ -50,21 +50,21 @@ export function ResultPanel({ data, onRegenerate }: ResultPanelProps) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-card border border-border bg-bg-surface p-4">
+        <div className="rounded-card border border-border bg-bg-surface p-4 shadow-card">
           <p className="text-caption text-text-muted mb-1">신규성 점수</p>
-          <p className="text-h3 text-text-primary">
+          <p className="text-h3 text-text-primary font-mono">
             {noveltyPercent !== null ? `${noveltyPercent}%` : "-"}
           </p>
         </div>
-        <div className="rounded-card border border-border bg-bg-surface p-4">
+        <div className="rounded-card border border-border bg-bg-surface p-4 shadow-card">
           <p className="text-caption text-text-muted mb-1">임계값</p>
-          <p className="text-h3 text-text-primary">
+          <p className="text-h3 text-text-primary font-mono">
             {thresholdPercent !== null ? `${thresholdPercent}%` : "-"}
           </p>
         </div>
         <div
           className={cn(
-            "rounded-card border p-4",
+            "rounded-card border p-4 shadow-card",
             highSimilarityCount > 0
               ? "border-warning bg-warning/5"
               : "border-success bg-success/5"

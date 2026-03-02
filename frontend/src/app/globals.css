@@ -18,6 +18,13 @@
     --text-muted: #9ca3af;
     --border: #e5e7eb;
     --border-active: #2563eb;
+    --primary-bg: #eff6ff;
+    --primary-border: #bfdbfe;
+    --accent-bg: #ecfdf5;
+    --accent-border: #a7f3d0;
+    --warning-bg: #fffbeb;
+    --warning-border: #fde68a;
+    --font-mono: "IBM Plex Mono", "SF Mono", monospace;
   }
 
   * {

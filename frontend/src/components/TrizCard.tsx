@@ -17,12 +17,12 @@ export function TrizCard({ principle, className }: TrizCardProps) {
   return (
     <div
       className={cn(
-        "rounded-card border border-border bg-bg-surface p-5 pl-6 border-l-4 border-l-primary",
+        "rounded-card border border-border bg-bg-surface p-5 shadow-card",
         className
       )}
     >
       <div className="flex items-start gap-4">
-        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-body-m shrink-0">
+        <div className="min-w-[44px] h-[44px] rounded-[10px] bg-primary-bg flex items-center justify-center text-primary font-mono font-extrabold text-lg shrink-0">
           {principle.number}
         </div>
         <div className="flex-1 min-w-0">
