@@ -7,11 +7,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sse_starlette.sse import EventSourceResponse
 
-from app.api.schemas.request import PatentGenerateRequest, PatentSearchRequest
+from app.api.schemas.request import (
+    PatentEvaluateRequest,
+    PatentGenerateRequest,
+    PatentSearchRequest,
+)
 from app.api.schemas.response import PatentGenerateResponse, PatentSearchResponse
 from app.config import Settings, get_settings
+from app.models.evaluation import EvaluationResult
 from app.models.session import SessionStore
-from app.models.state import AgentState
+from app.models.state import build_initial_state
+from app.services.evaluation_service import evaluate_pipeline_output
 from app.services.patent_searcher import PatentSearcher
 from app.services.patent_service import PatentService
 from app.services.reasoning_agent import PatentPipeline
@@ -49,6 +55,7 @@ async def generate_patent(
 
         result = await service.generate(
             problem_description=request.problem_description,
+            keyword=request.keyword,
             technical_field=request.technical_field,
             max_evasion_attempts=request.max_evasion_attempts,
         )
@@ -71,24 +78,12 @@ async def generate_patent_stream(
 ):
     """SSE endpoint that streams step-by-step LangGraph state updates."""
 
-    initial_state: AgentState = {
-        "user_problem": request.problem_description,
-        "technical_field": request.technical_field or "",
-        "triz_principles": [],
-        "current_idea": "",
-        "similar_patents": [],
-        "max_similarity_score": 0.0,
-        "novelty_score": 0.0,
-        "novelty_reasoning": "",
-        "context_sufficient": False,
-        "evasion_count": 0,
-        "max_evasion_attempts": request.max_evasion_attempts,
-        "final_idea": "",
-        "reasoning_trace": [],
-        "current_step": "",
-        "patent_draft": None,
-        "docx_path": None,
-    }
+    initial_state = build_initial_state(
+        problem_description=request.problem_description,
+        keyword=request.keyword or "",
+        technical_field=request.technical_field or "",
+        max_evasion_attempts=request.max_evasion_attempts,
+    )
 
     async def event_generator():
         accumulated = dict(initial_state)
@@ -162,6 +157,25 @@ async def search_patents(
     try:
         results = await searcher.search(request.query, top_k=request.top_k)
         return PatentSearchResponse(results=results)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/evaluate", response_model=EvaluationResult)
+async def evaluate_patent(
+    request: PatentEvaluateRequest,
+    settings: Settings = Depends(get_settings),
+):
+    """Run RAGAS evaluation on a pipeline result."""
+    try:
+        reference = request.reference or request.generated_idea
+        return await evaluate_pipeline_output(
+            user_problem=request.user_problem,
+            generated_idea=request.generated_idea,
+            retrieved_contexts=request.retrieved_contexts,
+            reference=reference,
+            settings=settings,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

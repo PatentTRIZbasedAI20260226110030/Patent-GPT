@@ -23,7 +23,7 @@ inside each other.", "matching_score": 0.78}}
 
 Available TRIZ principles for reference:
 {principles_list}
-"""
+{matrix_context}"""
 
 TRIZ_CLASSIFIER_HUMAN = """기술적 문제: {problem_description}
 {field_context}

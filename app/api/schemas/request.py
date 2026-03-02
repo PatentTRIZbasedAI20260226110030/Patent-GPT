@@ -1,9 +1,12 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class PatentGenerateRequest(BaseModel):
     problem_description: str = Field(
-        min_length=1, description="기술적 모순 또는 해결하고 싶은 문제"
+        default="", description="기술적 모순 또는 해결하고 싶은 문제"
+    )
+    keyword: str | None = Field(
+        default=None, description="검색 키워드 (예: 방열 구조체)"
     )
     technical_field: str | None = Field(
         default=None, description="기술 분야 (예: 전자기기, 의료기기)"
@@ -15,7 +18,26 @@ class PatentGenerateRequest(BaseModel):
         default=None, description="세션 ID (대화 맥락 유지용)"
     )
 
+    @model_validator(mode="after")
+    def at_least_one_input(self) -> "PatentGenerateRequest":
+        if not self.problem_description.strip() and not self.keyword:
+            raise ValueError(
+                "keyword 또는 problem_description 중 하나는 반드시 입력해야 합니다."
+            )
+        return self
+
 
 class PatentSearchRequest(BaseModel):
     query: str = Field(min_length=1, description="검색 쿼리")
     top_k: int = Field(default=5, ge=1, le=50)
+
+
+class PatentEvaluateRequest(BaseModel):
+    user_problem: str = Field(min_length=1, description="원래 문제 설명")
+    generated_idea: str = Field(min_length=1, description="생성된 발명 아이디어")
+    retrieved_contexts: list[str] = Field(
+        default_factory=list, description="검색된 선행특허 요약 목록"
+    )
+    reference: str = Field(
+        default="", description="참조 정답 (비어있으면 generated_idea 사용)"
+    )

@@ -2,6 +2,7 @@
 
 export interface PatentGenerateRequest {
   problem_description: string;
+  keyword?: string;
   technical_field?: string;
   max_evasion_attempts?: number;
   session_id?: string;
@@ -32,6 +33,13 @@ export interface SimilarPatent {
   similarity_score: number;
 }
 
+export interface EvaluationResult {
+  faithfulness: number;
+  answer_relevancy: number;
+  context_recall: number;
+  passed: boolean;
+}
+
 export interface PatentGenerateResponse {
   patent_draft: PatentDraft;
   triz_principles: TrizPrinciple[];
@@ -41,6 +49,7 @@ export interface PatentGenerateResponse {
   novelty_score: number | null;
   threshold: number | null;
   docx_download_url: string | null;
+  evaluation: EvaluationResult | null;
   session_id: string | null;
 }
 
