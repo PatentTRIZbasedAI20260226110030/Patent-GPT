@@ -22,12 +22,17 @@ interface PatentFormProps {
     max_evasion_attempts?: number;
   }) => void;
   isLoading?: boolean;
+  initialValues?: {
+    problem_description?: string;
+    technical_field?: string;
+    max_evasion_attempts?: number;
+  } | null;
 }
 
-export function PatentForm({ onSubmit, isLoading }: PatentFormProps) {
-  const [problemDescription, setProblemDescription] = useState("");
-  const [technicalField, setTechnicalField] = useState("");
-  const [maxEvasionAttempts, setMaxEvasionAttempts] = useState(3);
+export function PatentForm({ onSubmit, isLoading, initialValues }: PatentFormProps) {
+  const [problemDescription, setProblemDescription] = useState(initialValues?.problem_description ?? "");
+  const [technicalField, setTechnicalField] = useState(initialValues?.technical_field ?? "");
+  const [maxEvasionAttempts, setMaxEvasionAttempts] = useState(initialValues?.max_evasion_attempts ?? 3);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {

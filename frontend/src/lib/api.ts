@@ -72,74 +72,101 @@ export async function generatePatentStream(
   onStep: (event: GenerateStreamEvent) => void
 ): Promise<PatentGenerateResponse> {
   const url = `${BASE_URL}/api/v1/patent/generate/stream`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120_000);
 
-  if (!res.ok || !res.body) {
-    throw new ApiError(
-      `Stream API Error: ${res.status} ${res.statusText}`,
-      res.status
-    );
-  }
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let currentEvent = "";
-  let currentData = "";
-  let finalResponse: PatentGenerateResponse | null = null;
+    if (!res.ok || !res.body) {
+      throw new ApiError(
+        `Stream API Error: ${res.status} ${res.statusText}`,
+        res.status
+      );
+    }
 
-  const flushEvent = () => {
-    if (currentEvent === "step" && currentData) {
-      try {
-        const parsed = JSON.parse(currentData) as GenerateStreamEvent;
-        onStep(parsed);
-      } catch {
-        // Ignore malformed SSE chunks
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let currentEvent = "";
+    let currentData = "";
+    let finalResponse: PatentGenerateResponse | null = null;
+    let streamError: ApiError | null = null;
+
+    const flushEvent = () => {
+      if (currentEvent === "step" && currentData) {
+        try {
+          const parsed = JSON.parse(currentData) as GenerateStreamEvent;
+          onStep(parsed);
+        } catch {
+          // Ignore malformed SSE chunks
+        }
+      } else if (currentEvent === "done" && currentData) {
+        try {
+          finalResponse = JSON.parse(currentData) as PatentGenerateResponse;
+        } catch {
+          // Ignore malformed done event
+        }
+      } else if (currentEvent === "error" && currentData) {
+        try {
+          const errPayload = JSON.parse(currentData) as { message: string; step: string };
+          streamError = new ApiError(
+            `파이프라인 오류 (${errPayload.step}): ${errPayload.message}`,
+            0,
+            errPayload
+          );
+        } catch {
+          streamError = new ApiError("스트림 오류가 발생했습니다.", 0);
+        }
       }
-    } else if (currentEvent === "done" && currentData) {
-      try {
-        finalResponse = JSON.parse(currentData) as PatentGenerateResponse;
-      } catch {
-        // Ignore malformed done event
+      currentEvent = "";
+      currentData = "";
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const rawLine of lines) {
+        const line = rawLine.trimEnd();
+        if (!line) {
+          flushEvent();
+          continue;
+        }
+        if (line.startsWith("event:")) {
+          currentEvent = line.replace("event:", "").trim();
+        } else if (line.startsWith("data:")) {
+          const dataLine = line.replace("data:", "").trim();
+          currentData = currentData ? `${currentData}\n${dataLine}` : dataLine;
+        }
       }
     }
-    currentEvent = "";
-    currentData = "";
-  };
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    flushEvent();
 
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
+    if (streamError) throw streamError;
 
-    for (const rawLine of lines) {
-      const line = rawLine.trimEnd();
-      if (!line) {
-        flushEvent();
-        continue;
-      }
-      if (line.startsWith("event:")) {
-        currentEvent = line.replace("event:", "").trim();
-      } else if (line.startsWith("data:")) {
-        const dataLine = line.replace("data:", "").trim();
-        currentData = currentData ? `${currentData}\n${dataLine}` : dataLine;
-      }
+    if (!finalResponse) {
+      throw new ApiError("Stream ended without a final response", 0);
     }
+    return finalResponse;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new ApiError("연결 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.", 0);
+    }
+    throw err;
   }
-
-  flushEvent();
-
-  if (!finalResponse) {
-    throw new ApiError("Stream ended without a final response", 0);
-  }
-  return finalResponse;
 }
 
 export async function searchPatent(

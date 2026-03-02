@@ -8,7 +8,7 @@ import { ResultPanel } from "@/components/ResultPanel";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { generatePatentStream } from "@/lib/api";
+import { generatePatentStream, ApiError } from "@/lib/api";
 import type { PatentGenerateResponse } from "@/types/patent";
 
 const NODE_TO_STEP: Record<string, number> = {
@@ -22,6 +22,17 @@ const NODE_TO_STEP: Record<string, number> = {
   draft_patent: 3,
 };
 
+const NODE_STEP_LABEL: Record<string, string> = {
+  classify_triz: "TRIZ 분류",
+  search_internal: "내부 검색",
+  evaluate_context: "컨텍스트 평가",
+  search_kipris: "KIPRIS 검색",
+  generate_idea: "아이디어 생성",
+  evaluate_novelty: "신규성 평가",
+  evade: "회피 설계",
+  draft_patent: "특허 명세서 작성",
+};
+
 type ViewState = "input" | "loading" | "result" | "error";
 
 export default function GeneratePage() {
@@ -29,6 +40,12 @@ export default function GeneratePage() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState<PatentGenerateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [failedStep, setFailedStep] = useState<string | null>(null);
+  const [lastSubmittedData, setLastSubmittedData] = useState<{
+    problem_description: string;
+    technical_field?: string;
+    max_evasion_attempts?: number;
+  } | null>(null);
 
   const handleSubmit = useCallback(
     async (data: {
@@ -36,9 +53,11 @@ export default function GeneratePage() {
       technical_field?: string;
       max_evasion_attempts?: number;
     }) => {
+      setLastSubmittedData(data);
       setViewState("loading");
       setLoadingStep(0);
       setErrorMessage(null);
+      setFailedStep(null);
 
       try {
         const res = await generatePatentStream(data, (event) => {
@@ -49,6 +68,12 @@ export default function GeneratePage() {
         setResult(res);
         setViewState("result");
       } catch (err) {
+        if (err instanceof ApiError && typeof err.body === "object" && err.body !== null) {
+          const body = err.body as { step?: string };
+          setFailedStep(body?.step ?? null);
+        } else {
+          setFailedStep(null);
+        }
         setErrorMessage(
           err instanceof Error ? err.message : "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
         );
@@ -62,6 +87,7 @@ export default function GeneratePage() {
     setViewState("input");
     setResult(null);
     setErrorMessage(null);
+    setFailedStep(null);
   }, []);
 
   return (
@@ -80,7 +106,7 @@ export default function GeneratePage() {
               </p>
             </div>
             <div className="max-w-[680px] mx-auto rounded-card border border-border bg-bg-surface p-6 md:p-8">
-              <PatentForm onSubmit={handleSubmit} isLoading={false} />
+              <PatentForm onSubmit={handleSubmit} isLoading={false} initialValues={lastSubmittedData} />
             </div>
           </>
         )}
@@ -106,6 +132,11 @@ export default function GeneratePage() {
         {viewState === "error" && (
           <div className="max-w-[680px] mx-auto rounded-card border border-error/50 bg-error/5 p-6 md:p-8">
             <h2 className="text-h2 text-error mb-2">오류가 발생했습니다</h2>
+            {failedStep && (
+              <p className="text-body-m text-text-muted mb-2">
+                실패 단계: <span className="font-semibold">{NODE_STEP_LABEL[failedStep] ?? failedStep}</span>
+              </p>
+            )}
             <p className="text-body-m text-text-secondary mb-6">
               {errorMessage}
             </p>

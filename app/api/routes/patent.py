@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +13,8 @@ from app.models.state import AgentState
 from app.services.patent_searcher import PatentSearcher
 from app.services.patent_service import PatentService
 from app.services.reasoning_agent import PatentPipeline
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/patent")
 
@@ -72,36 +75,51 @@ async def generate_patent_stream(
 
     async def event_generator():
         accumulated = dict(initial_state)
-        async for event in pipeline.stream(initial_state):
-            for node_name, node_state in event.items():
-                accumulated.update(node_state)
-                yield {
-                    "event": "step",
-                    "data": json.dumps(
-                        {"step": node_name, "state": _serialize_state(node_state)},
-                        ensure_ascii=False,
-                    ),
-                }
+        try:
+            async for event in pipeline.stream(initial_state):
+                for node_name, node_state in event.items():
+                    accumulated.update(node_state)
+                    yield {
+                        "event": "step",
+                        "data": json.dumps(
+                            {"step": node_name, "state": _serialize_state(node_state)},
+                            ensure_ascii=False,
+                        ),
+                    }
 
-        # Build final response from accumulated state
-        draft = accumulated.get("patent_draft")
-        docx_path = accumulated.get("docx_path")
-        draft_id = Path(docx_path).stem if docx_path else None
-        response = {
-            "patent_draft": draft.model_dump() if draft else None,
-            "triz_principles": [
-                p.model_dump() for p in accumulated.get("triz_principles", [])
-            ],
-            "similar_patents": [
-                p.model_dump() for p in accumulated.get("similar_patents", [])
-            ],
-            "reasoning_trace": accumulated.get("reasoning_trace", []),
-            "draft_id": draft_id,
-            "novelty_score": accumulated.get("novelty_score"),
-            "threshold": settings.SIMILARITY_THRESHOLD,
-            "docx_download_url": f"/api/v1/patent/{draft_id}/docx" if draft_id else None,
-        }
-        yield {"event": "done", "data": json.dumps(response, ensure_ascii=False)}
+            # Build final response from accumulated state
+            draft = accumulated.get("patent_draft")
+            docx_path = accumulated.get("docx_path")
+            draft_id = Path(docx_path).stem if docx_path else None
+            response = {
+                "patent_draft": draft.model_dump() if draft else None,
+                "triz_principles": [
+                    p.model_dump() for p in accumulated.get("triz_principles", [])
+                ],
+                "similar_patents": [
+                    p.model_dump() for p in accumulated.get("similar_patents", [])
+                ],
+                "reasoning_trace": accumulated.get("reasoning_trace", []),
+                "draft_id": draft_id,
+                "novelty_score": accumulated.get("novelty_score"),
+                "threshold": settings.SIMILARITY_THRESHOLD,
+                "docx_download_url": (
+                    f"/api/v1/patent/{draft_id}/docx" if draft_id else None
+                ),
+            }
+            yield {"event": "done", "data": json.dumps(response, ensure_ascii=False)}
+        except Exception as exc:
+            logger.exception("Pipeline streaming error: %s", exc)
+            yield {
+                "event": "error",
+                "data": json.dumps(
+                    {
+                        "message": str(exc),
+                        "step": accumulated.get("current_step", "unknown"),
+                    },
+                    ensure_ascii=False,
+                ),
+            }
 
     return EventSourceResponse(event_generator())
 
