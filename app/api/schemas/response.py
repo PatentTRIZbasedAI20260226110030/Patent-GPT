@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+from app.models.evaluation import EvaluationResult
 from app.models.patent_draft import PatentDraft, SimilarPatent
 from app.models.triz import TRIZPrinciple
 
@@ -13,6 +14,8 @@ class PatentGenerateResponse(BaseModel):
     novelty_score: float | None = None
     threshold: float | None = None
     docx_download_url: str | None = None
+    evaluation: EvaluationResult | None = None
+    session_id: str | None = None
 
 
 class PatentSearchResponse(BaseModel):

@@ -1,15 +1,23 @@
 import json
 import logging
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sse_starlette.sse import EventSourceResponse
 
-from app.api.schemas.request import PatentGenerateRequest, PatentSearchRequest
+from app.api.schemas.request import (
+    PatentEvaluateRequest,
+    PatentGenerateRequest,
+    PatentSearchRequest,
+)
 from app.api.schemas.response import PatentGenerateResponse, PatentSearchResponse
 from app.config import Settings, get_settings
-from app.models.state import AgentState
+from app.models.evaluation import EvaluationResult
+from app.models.session import SessionStore
+from app.models.state import build_initial_state
+from app.services.evaluation_service import evaluate_pipeline_output
 from app.services.patent_searcher import PatentSearcher
 from app.services.patent_service import PatentService
 from app.services.reasoning_agent import PatentPipeline
@@ -17,6 +25,9 @@ from app.services.reasoning_agent import PatentPipeline
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/patent")
+
+# Module-level singleton session store
+_session_store = SessionStore(max_sessions=100, ttl_seconds=3600)
 
 
 def get_patent_service(settings: Settings = Depends(get_settings)) -> PatentService:
@@ -37,11 +48,24 @@ async def generate_patent(
     service: PatentService = Depends(get_patent_service),
 ):
     try:
-        return await service.generate(
+        # Session management
+        session_id = request.session_id or str(uuid.uuid4())
+        session = _session_store.get_or_create(session_id)
+        session.add_turn("user", request.problem_description)
+
+        result = await service.generate(
             problem_description=request.problem_description,
+            keyword=request.keyword,
             technical_field=request.technical_field,
             max_evasion_attempts=request.max_evasion_attempts,
         )
+
+        # Record assistant turn
+        summary = result.patent_draft.title if result.patent_draft else "생성 완료"
+        session.add_turn("assistant", summary)
+
+        result.session_id = session_id
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -54,24 +78,12 @@ async def generate_patent_stream(
 ):
     """SSE endpoint that streams step-by-step LangGraph state updates."""
 
-    initial_state: AgentState = {
-        "user_problem": request.problem_description,
-        "technical_field": request.technical_field or "",
-        "triz_principles": [],
-        "current_idea": "",
-        "similar_patents": [],
-        "max_similarity_score": 0.0,
-        "novelty_score": 0.0,
-        "novelty_reasoning": "",
-        "context_sufficient": False,
-        "evasion_count": 0,
-        "max_evasion_attempts": request.max_evasion_attempts,
-        "final_idea": "",
-        "reasoning_trace": [],
-        "current_step": "",
-        "patent_draft": None,
-        "docx_path": None,
-    }
+    initial_state = build_initial_state(
+        problem_description=request.problem_description,
+        keyword=request.keyword or "",
+        technical_field=request.technical_field or "",
+        max_evasion_attempts=request.max_evasion_attempts,
+    )
 
     async def event_generator():
         accumulated = dict(initial_state)
@@ -147,6 +159,47 @@ async def search_patents(
         return PatentSearchResponse(results=results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/evaluate", response_model=EvaluationResult)
+async def evaluate_patent(
+    request: PatentEvaluateRequest,
+    settings: Settings = Depends(get_settings),
+):
+    """Run RAGAS evaluation on a pipeline result."""
+    try:
+        reference = request.reference or request.generated_idea
+        return await evaluate_pipeline_output(
+            user_problem=request.user_problem,
+            generated_idea=request.generated_idea,
+            retrieved_contexts=request.retrieved_contexts,
+            reference=reference,
+            settings=settings,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/session/{session_id}/history")
+async def get_session_history(session_id: str):
+    """Retrieve conversation history for a session."""
+    session = _session_store.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {
+        "session_id": session.session_id,
+        "turns": [t.model_dump() for t in session.turns],
+        "created_at": session.created_at,
+    }
+
+
+@router.delete("/session/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session and its conversation history."""
+    deleted = _session_store.delete(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"detail": "Session deleted"}
 
 
 @router.get("/{draft_id}/docx")

@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     TRIZ_ROUTER: str = "llm"  # "llm" or "ml"
     ML_MODEL_PATH: str = "./data/models/triz_classifier.joblib"
 
+    # Evaluation
+    FAITHFULNESS_THRESHOLD: float = 0.8
+    ENABLE_AUTO_EVALUATION: bool = False
+
     # ChromaDB
     CHROMA_PERSIST_DIR: str = "./data/chromadb"
 
