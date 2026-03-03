@@ -1,11 +1,11 @@
+import asyncio
 import logging
 
-from langchain_google_genai import ChatGoogleGenerativeAI
 from ragas.dataset_schema import SingleTurnSample
 from ragas.llms import LangchainLLMWrapper
 from ragas.metrics.collections import AnswerRelevancy, ContextRecall, Faithfulness
 
-from app.config import Settings
+from app.config import Settings, get_llm
 from app.models.evaluation import EvaluationResult
 
 logger = logging.getLogger(__name__)
@@ -27,12 +27,7 @@ async def evaluate_pipeline_output(
         reference: Ground-truth reference (the final idea or draft abstract).
         settings: App settings with API keys and thresholds.
     """
-    llm = ChatGoogleGenerativeAI(
-        model=settings.GEMINI_MODEL,
-        google_api_key=settings.GOOGLE_API_KEY,
-        temperature=0.0,
-    )
-    evaluator_llm = LangchainLLMWrapper(llm)
+    evaluator_llm = LangchainLLMWrapper(get_llm(settings, temperature=0.0))
 
     sample = SingleTurnSample(
         user_input=user_problem,
@@ -45,19 +40,21 @@ async def evaluate_pipeline_output(
     relevancy_metric = AnswerRelevancy(llm=evaluator_llm)
     context_recall_metric = ContextRecall(llm=evaluator_llm)
 
-    # Score each metric independently; catch per-metric failures
-    scores: dict[str, float] = {}
-    for name, metric in [
-        ("faithfulness", faithfulness_metric),
-        ("answer_relevancy", relevancy_metric),
-        ("context_recall", context_recall_metric),
-    ]:
+    # Score all metrics concurrently — they are independent LLM calls
+    async def _score(name: str, metric) -> tuple[str, float]:
         try:
             score = await metric.single_turn_ascore(sample)
-            scores[name] = float(score) if score is not None else 0.0
+            return name, float(score) if score is not None else 0.0
         except Exception as e:
             logger.warning("RAGAS metric '%s' failed: %s", name, e)
-            scores[name] = 0.0
+            return name, 0.0
+
+    results = await asyncio.gather(
+        _score("faithfulness", faithfulness_metric),
+        _score("answer_relevancy", relevancy_metric),
+        _score("context_recall", context_recall_metric),
+    )
+    scores = dict(results)
 
     return EvaluationResult(
         faithfulness=scores["faithfulness"],

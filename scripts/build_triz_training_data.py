@@ -195,7 +195,7 @@ def main():
     print(f"  Stats: {stats_path}")
 
     # Summary
-    print(f"\nDataset summary:")
+    print("\nDataset summary:")
     print(f"  Samples:          {stats['num_samples']}")
     print(f"  Unique labels:    {stats['unique_labels']}/40")
     print(f"  Missing labels:   {stats['missing_labels'] or 'None'}")

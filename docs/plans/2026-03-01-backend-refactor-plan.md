@@ -2,11 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Refactor Patent-GPT backend to an all-in-LangGraph pipeline with Gemini 3.0 Flash, CRAG retrieval, and novelty evaluation — working prototype for March 4th demo.
+**Goal:** Refactor Patent-GPT backend to an all-in-LangGraph pipeline with Gemini 2.0 Flash, CRAG retrieval, and novelty evaluation — working prototype for March 4th demo.
 
-**Architecture:** Single LangGraph StateGraph with 8 nodes (classify_triz → search_internal → evaluate_context → [search_kipris fallback] → generate_idea → evaluate_novelty → [evade loop] → draft_patent). All LLM calls use Gemini 3.0 Flash via langchain-google-genai. Embeddings stay OpenAI text-embedding-3-small.
+**Architecture:** Single LangGraph StateGraph with 8 nodes (classify_triz → search_internal → evaluate_context → [search_kipris fallback] → generate_idea → evaluate_novelty → [evade loop] → draft_patent). All LLM calls use Gemini 2.0 Flash via langchain-google-genai. Embeddings stay OpenAI text-embedding-3-small.
 
-**Tech Stack:** FastAPI, LangGraph, langchain-google-genai (Gemini 3.0 Flash), ChromaDB, CrossEncoder, sse-starlette, pytest
+**Tech Stack:** FastAPI, LangGraph, langchain-google-genai (Gemini 2.0 Flash), ChromaDB, CrossEncoder, sse-starlette, pytest
 
 ---
 
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     KIPRIS_API_KEY: str = ""
 
     # Model settings
-    GEMINI_MODEL: str = "gemini-3-flash-preview"
+    GEMINI_MODEL: str = "gemini-2.0-flash"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # Search settings
@@ -82,7 +82,7 @@ def get_settings() -> Settings:
 GOOGLE_API_KEY=                          # Google AI Studio API key (required)
 OPENAI_API_KEY=                          # OpenAI API key (for embeddings)
 KIPRIS_API_KEY=                          # KIPRISplus API key
-GEMINI_MODEL=gemini-3-flash-preview
+GEMINI_MODEL=gemini-2.0-flash
 EMBEDDING_MODEL=text-embedding-3-small
 SIMILARITY_THRESHOLD=0.8
 MAX_EVASION_ATTEMPTS=3
@@ -103,7 +103,7 @@ def test_settings_loads_defaults():
     settings = Settings(
         GOOGLE_API_KEY="test-google-key",
     )
-    assert settings.GEMINI_MODEL == "gemini-3-flash-preview"
+    assert settings.GEMINI_MODEL == "gemini-2.0-flash"
     assert settings.EMBEDDING_MODEL == "text-embedding-3-small"
     assert settings.SIMILARITY_THRESHOLD == 0.8
     assert settings.MAX_EVASION_ATTEMPTS == 3
@@ -138,7 +138,7 @@ Run: `pip install -e ".[dev]"`
 
 ```bash
 git add pyproject.toml app/config.py .env.example tests/test_config.py
-git commit -m "feat: swap config to Gemini 3.0 Flash + add GOOGLE_API_KEY"
+git commit -m "feat: swap config to Gemini 2.0 Flash + add GOOGLE_API_KEY"
 ```
 
 ---

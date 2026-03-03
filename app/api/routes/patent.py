@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import uuid
 from pathlib import Path
 
@@ -30,16 +31,30 @@ router = APIRouter(prefix="/patent")
 _session_store = SessionStore(max_sessions=100, ttl_seconds=3600)
 
 
+_patent_service: PatentService | None = None
+_patent_searcher: PatentSearcher | None = None
+_pipeline: PatentPipeline | None = None
+
+
 def get_patent_service(settings: Settings = Depends(get_settings)) -> PatentService:
-    return PatentService(settings)
+    global _patent_service
+    if _patent_service is None:
+        _patent_service = PatentService(settings)
+    return _patent_service
 
 
 def get_patent_searcher(settings: Settings = Depends(get_settings)) -> PatentSearcher:
-    return PatentSearcher(settings)
+    global _patent_searcher
+    if _patent_searcher is None:
+        _patent_searcher = PatentSearcher(settings)
+    return _patent_searcher
 
 
 def get_pipeline(settings: Settings = Depends(get_settings)) -> PatentPipeline:
-    return PatentPipeline(settings)
+    global _pipeline
+    if _pipeline is None:
+        _pipeline = PatentPipeline(settings)
+    return _pipeline
 
 
 @router.post("/generate", response_model=PatentGenerateResponse)
@@ -66,8 +81,9 @@ async def generate_patent(
 
         result.session_id = session_id
         return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Patent generation failed")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/generate/stream")
@@ -142,8 +158,11 @@ def _serialize_state(state: dict) -> dict:
     for key, value in state.items():
         if hasattr(value, "model_dump"):
             result[key] = value.model_dump()
-        elif isinstance(value, list) and value and hasattr(value[0], "model_dump"):
-            result[key] = [item.model_dump() for item in value]
+        elif isinstance(value, list):
+            result[key] = [
+                item.model_dump() if hasattr(item, "model_dump") else item
+                for item in value
+            ]
         else:
             result[key] = value
     return result
@@ -157,8 +176,9 @@ async def search_patents(
     try:
         results = await searcher.search(request.query, top_k=request.top_k)
         return PatentSearchResponse(results=results)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Patent search failed")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/evaluate", response_model=EvaluationResult)
@@ -176,8 +196,9 @@ async def evaluate_patent(
             reference=reference,
             settings=settings,
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Patent evaluation failed")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/session/{session_id}/history")
@@ -204,7 +225,12 @@ async def delete_session(session_id: str):
 
 @router.get("/{draft_id}/docx")
 async def download_docx(draft_id: str):
-    docx_path = Path(f"data/drafts/{draft_id}.docx")
+    if not re.match(r"^[a-zA-Z0-9_-]+$", draft_id):
+        raise HTTPException(status_code=400, detail="Invalid draft ID")
+    drafts_dir = Path("data/drafts").resolve()
+    docx_path = (drafts_dir / f"{draft_id}.docx").resolve()
+    if not str(docx_path).startswith(str(drafts_dir)):
+        raise HTTPException(status_code=400, detail="Invalid draft ID")
     if not docx_path.exists():
         raise HTTPException(status_code=404, detail="DOCX file not found")
     return FileResponse(

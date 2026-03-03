@@ -1,11 +1,12 @@
 import time
 from collections import OrderedDict
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
 class ConversationTurn(BaseModel):
-    role: str = Field(description="'user' or 'assistant'")
+    role: Literal["user", "assistant"]
     content: str = Field(description="메시지 내용")
     timestamp: float = Field(default_factory=time.time)
 

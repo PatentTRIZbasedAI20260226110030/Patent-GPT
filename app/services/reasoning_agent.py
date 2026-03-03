@@ -3,12 +3,12 @@ import logging
 from typing import Any
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, StateGraph
 
-from app.config import Settings
+from app.config import Settings, get_llm
 from app.models.patent_draft import SimilarPatent
 from app.models.state import AgentState
+from app.models.triz import TRIZPrinciple
 from app.prompts.crag import CRAG_EVALUATION_HUMAN, CRAG_EVALUATION_SYSTEM
 from app.prompts.evasion import EVASION_HUMAN, EVASION_SYSTEM
 from app.prompts.novelty import NOVELTY_EVALUATION_HUMAN, NOVELTY_EVALUATION_SYSTEM
@@ -18,6 +18,23 @@ from app.services.triz_classifier import classify_triz
 from app.utils.kipris_client import KIPRISClient
 
 logger = logging.getLogger(__name__)
+
+
+def format_triz_text(principles: list[TRIZPrinciple]) -> str:
+    """Format TRIZ principles for prompt injection."""
+    return ", ".join(f"#{p.number} {p.name_ko}({p.name_en})" for p in principles)
+
+
+def format_patents_summary(
+    patents: list[SimilarPatent], max_count: int = 5, abstract_len: int = 150
+) -> str:
+    """Format similar patents for prompt injection."""
+    if not patents:
+        return "(선행기술 없음)"
+    return "\n".join(
+        f"- {p.title} (유사도: {p.similarity_score:.1%}): {p.abstract[:abstract_len]}"
+        for p in patents[:max_count]
+    )
 
 
 def route_after_evaluate_novelty(state: dict[str, Any], threshold: float) -> str:
@@ -41,11 +58,7 @@ class PatentPipeline:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.llm = ChatGoogleGenerativeAI(
-            model=settings.GEMINI_MODEL,
-            google_api_key=settings.GOOGLE_API_KEY,
-            temperature=0.7,
-        )
+        self.llm = get_llm(settings, temperature=0.7)
         self.patent_searcher = PatentSearcher(settings)
         self.kipris_client = KIPRISClient(settings)
 
@@ -192,9 +205,7 @@ class PatentPipeline:
         }
 
     async def _generate_idea_node(self, state: AgentState) -> dict:
-        triz_text = ", ".join(
-            f"#{p.number} {p.name_ko}({p.name_en})" for p in state["triz_principles"]
-        )
+        triz_text = format_triz_text(state["triz_principles"])
         chain = self.idea_prompt | self.llm
         response = await chain.ainvoke(
             {
@@ -210,12 +221,9 @@ class PatentPipeline:
         }
 
     async def _evaluate_novelty_node(self, state: AgentState) -> dict:
-        patents_text = "\n".join(
-            f"- {p.title} (유사도: {p.similarity_score:.1%}): {p.abstract[:150]}"
-            for p in state["similar_patents"][:5]
+        patents_text = format_patents_summary(
+            state["similar_patents"], max_count=5, abstract_len=150
         )
-        if not patents_text:
-            patents_text = "(선행기술 없음)"
 
         chain = self.novelty_prompt | self.llm
         response = await chain.ainvoke(
@@ -243,9 +251,8 @@ class PatentPipeline:
         }
 
     async def _evade_node(self, state: AgentState) -> dict:
-        patents_text = "\n".join(
-            f"- {p.title} (유사도: {p.similarity_score:.1%}): {p.abstract[:100]}..."
-            for p in state["similar_patents"][:3]
+        patents_text = format_patents_summary(
+            state["similar_patents"], max_count=3, abstract_len=100
         )
         chain = self.evasion_prompt | self.llm
         response = await chain.ainvoke(
@@ -268,9 +275,7 @@ class PatentPipeline:
     async def _draft_patent_node(self, state: AgentState) -> dict:
         from app.services.draft_generator import generate_draft
 
-        triz_text = ", ".join(
-            f"#{p.number} {p.name_ko}({p.name_en})" for p in state["triz_principles"]
-        )
+        triz_text = format_triz_text(state["triz_principles"])
         draft, docx_path = await generate_draft(
             idea=state["current_idea"],
             problem_description=state["user_problem"],

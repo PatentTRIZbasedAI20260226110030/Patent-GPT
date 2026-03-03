@@ -6,7 +6,7 @@
 ## Decisions
 
 - **Architecture:** All-in-LangGraph (Approach A) — single graph, all stages as nodes
-- **Model:** Gemini 3.0 Flash via Google AI Studio (`langchain-google-genai` + `GOOGLE_API_KEY`)
+- **Model:** Gemini 2.0 Flash via Google AI Studio (`langchain-google-genai` + `GOOGLE_API_KEY`)
 - **Embeddings:** Keep `text-embedding-3-small` (ChromaDB already indexed with it)
 - **Streaming:** SSE endpoint (`/generate/stream`) yields state per node
 
@@ -39,14 +39,14 @@ classify_triz → search_internal → evaluate_context
 
 | Node | Purpose | Model/Tech |
 |---|---|---|
-| `classify_triz` | LLM judges top-3 TRIZ principles | Gemini 3.0 Flash |
+| `classify_triz` | LLM judges top-3 TRIZ principles | Gemini 2.0 Flash |
 | `search_internal` | Hybrid search ChromaDB (BM25 + embeddings) | CrossEncoder reranker |
-| `evaluate_context` | LLM judges if retrieved context is sufficient (CRAG) | Gemini 3.0 Flash |
+| `evaluate_context` | LLM judges if retrieved context is sufficient (CRAG) | Gemini 2.0 Flash |
 | `search_kipris` | Fallback: call KIPRIS API, ingest into ChromaDB | httpx |
-| `generate_idea` | Generate invention idea using TRIZ + prior art | Gemini 3.0 Flash |
-| `evaluate_novelty` | Evaluate patentability/novelty vs prior art | Gemini 3.0 Flash |
-| `evade` | Redesign idea to differentiate from prior art | Gemini 3.0 Flash |
-| `draft_patent` | Structured output → PatentDraft + DOCX | Gemini 3.0 Flash |
+| `generate_idea` | Generate invention idea using TRIZ + prior art | Gemini 2.0 Flash |
+| `evaluate_novelty` | Evaluate patentability/novelty vs prior art | Gemini 2.0 Flash |
+| `evade` | Redesign idea to differentiate from prior art | Gemini 2.0 Flash |
+| `draft_patent` | Structured output → PatentDraft + DOCX | Gemini 2.0 Flash |
 
 ### Conditional Edges
 
@@ -84,7 +84,7 @@ class AgentState(TypedDict):
 |---|---|
 | `OPENAI_API_KEY` (required) | `OPENAI_API_KEY` (embeddings only) |
 | — | `GOOGLE_API_KEY` (required, for Gemini) |
-| `LLM_MODEL=gpt-4o` | `GEMINI_MODEL=gemini-3.0-flash` |
+| `LLM_MODEL=gpt-4o` | `GEMINI_MODEL=gemini-2.0-flash` |
 | `LLM_MODEL_MINI=gpt-4o-mini` | Removed (single model) |
 
 ## API Changes

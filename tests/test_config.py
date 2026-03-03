@@ -5,7 +5,7 @@ def test_settings_loads_defaults():
     settings = Settings(
         GOOGLE_API_KEY="test-google-key",
     )
-    assert settings.GEMINI_MODEL == "gemini-3-flash-preview"
+    assert settings.GEMINI_MODEL == "gemini-2.0-flash"
     assert settings.EMBEDDING_MODEL == "text-embedding-3-small"
     assert settings.SIMILARITY_THRESHOLD == 0.5
     assert settings.MAX_EVASION_ATTEMPTS == 3
@@ -24,4 +24,4 @@ def test_settings_requires_google_api_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     with pytest.raises(ValidationError):
-        Settings()
+        Settings(_env_file=None)

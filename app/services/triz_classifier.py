@@ -1,10 +1,10 @@
 import json
 import logging
+from typing import Any
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 
-from app.config import Settings
+from app.config import Settings, get_llm
 from app.models.triz import (
     ContradictionMatrix,
     TRIZPrinciple,
@@ -33,7 +33,7 @@ async def _extract_contradiction_params(
     problem_description: str,
     technical_field: str,
     matrix: ContradictionMatrix,
-    llm: ChatGoogleGenerativeAI,
+    llm: Any,
 ) -> tuple[int | None, int | None]:
     """Extract improving/worsening engineering parameters from a problem."""
     parameter_list = "\n".join(matrix.get_parameter_names())
@@ -109,15 +109,20 @@ async def classify_triz(
     )
 
 
+_ml_classifier = None
+
+
 def _classify_triz_ml(
     problem_description: str,
     settings: Settings,
 ) -> list[TRIZPrinciple]:
     """Classify using trained ML model."""
-    from app.services.ml_classifier import MLTrizClassifier
+    global _ml_classifier
+    if _ml_classifier is None:
+        from app.services.ml_classifier import MLTrizClassifier
 
-    classifier = MLTrizClassifier(settings.ML_MODEL_PATH)
-    return classifier.predict(problem_description, top_k=3)
+        _ml_classifier = MLTrizClassifier(settings.ML_MODEL_PATH)
+    return _ml_classifier.predict(problem_description, top_k=3)
 
 
 async def _classify_triz_llm(
@@ -127,11 +132,7 @@ async def _classify_triz_llm(
     keyword: str | None = None,
 ) -> list[TRIZPrinciple]:
     """Classify using Gemini LLM with contradiction matrix guidance."""
-    llm = ChatGoogleGenerativeAI(
-        model=settings.GEMINI_MODEL,
-        google_api_key=settings.GOOGLE_API_KEY,
-        temperature=0.2,
-    )
+    llm = get_llm(settings, temperature=0.2)
     principles = load_triz_principles()
     principles_text = "\n".join(
         f"#{p.number} {p.name_en} ({p.name_ko}): {p.description}" for p in principles

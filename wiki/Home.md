@@ -44,7 +44,7 @@ Problem Input → TRIZ Classification → Prior Art Search
 | Language | Python 3.11+ |
 | Framework | FastAPI, Uvicorn |
 | LLM Orchestration | LangChain, LangGraph |
-| LLM | Gemini 3.0 Flash (via `langchain-google-genai`) |
+| LLM | Gemini 2.0 Flash (via `langchain-google-genai`) |
 | Embeddings | text-embedding-3-small |
 | Vector DB | ChromaDB (local) |
 | Search | BM25 (rank-bm25) + Cross-Encoder reranking |

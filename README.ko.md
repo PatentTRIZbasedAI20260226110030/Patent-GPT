@@ -107,7 +107,7 @@
 | 백엔드 | FastAPI, Uvicorn |
 | 프론트엔드 | Next.js 16, React 18, Tailwind CSS, Shadcn UI |
 | LLM 오케스트레이션 | LangChain, LangGraph |
-| LLM | Gemini 3.0 Flash (`langchain-google-genai`) |
+| LLM | Gemini 2.0 Flash (`langchain-google-genai`) |
 | 임베딩 | OpenAI text-embedding-3-small |
 | 벡터 DB | ChromaDB (로컬, in-process) |
 | 검색 | BM25 (rank-bm25) + Cross-Encoder (sentence-transformers) |

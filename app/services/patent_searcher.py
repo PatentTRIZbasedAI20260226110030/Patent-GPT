@@ -1,12 +1,12 @@
+import asyncio
 import logging
 
 from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
 from sentence_transformers import CrossEncoder
 
-from app.config import Settings
+from app.config import Settings, get_embeddings
 from app.models.patent_draft import SimilarPatent
 
 logger = logging.getLogger(__name__)
@@ -31,18 +31,36 @@ def merge_and_score_results(docs: list[Document], scores: list[float]) -> list[S
 class PatentSearcher:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.embeddings = OpenAIEmbeddings(
-            model=settings.EMBEDDING_MODEL,
-            api_key=settings.OPENAI_API_KEY,
-        )
+        self.embeddings = get_embeddings(settings)
         self.reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        self._vectorstore: Chroma | None = None
+        self._bm25_retriever: BM25Retriever | None = None
+        self._bm25_doc_count: int = 0
 
     def _get_vectorstore(self) -> Chroma:
-        return Chroma(
-            persist_directory=self.settings.CHROMA_PERSIST_DIR,
-            embedding_function=self.embeddings,
-            collection_name="patents",
-        )
+        if self._vectorstore is None:
+            self._vectorstore = Chroma(
+                persist_directory=self.settings.CHROMA_PERSIST_DIR,
+                embedding_function=self.embeddings,
+                collection_name="patents",
+            )
+        return self._vectorstore
+
+    def _get_bm25_retriever(self, vectorstore: Chroma, retrieval_k: int) -> BM25Retriever | None:
+        """Build or reuse cached BM25 index. Rebuilds if document count changes."""
+        collection = vectorstore._collection
+        current_count = collection.count()
+        if self._bm25_retriever is None or current_count != self._bm25_doc_count:
+            all_docs = vectorstore.get()
+            if not all_docs["documents"]:
+                return None
+            bm25_docs = [
+                Document(page_content=doc, metadata=meta)
+                for doc, meta in zip(all_docs["documents"], all_docs["metadatas"])
+            ]
+            self._bm25_retriever = BM25Retriever.from_documents(bm25_docs, k=retrieval_k)
+            self._bm25_doc_count = current_count
+        return self._bm25_retriever
 
     async def search(self, query: str, top_k: int | None = None) -> list[SimilarPatent]:
         top_k = top_k or self.settings.RERANK_TOP_K
@@ -57,21 +75,17 @@ class PatentSearcher:
         # Dense retriever (vector search)
         dense_retriever = vectorstore.as_retriever(search_kwargs={"k": retrieval_k})
 
-        # Sparse retriever (BM25)
-        all_docs = vectorstore.get()
-        if not all_docs["documents"]:
+        # Sparse retriever (BM25) — cached, rebuilt only when doc count changes
+        sparse_retriever = self._get_bm25_retriever(vectorstore, retrieval_k)
+        if sparse_retriever is None:
             return []
 
-        bm25_docs = [
-            Document(page_content=doc, metadata=meta)
-            for doc, meta in zip(all_docs["documents"], all_docs["metadatas"])
-        ]
-        sparse_retriever = BM25Retriever.from_documents(bm25_docs, k=retrieval_k)
-
-        # Retrieve candidates from both retrievers
-        candidates = await dense_retriever.ainvoke(query)
-        bm25_results = sparse_retriever.invoke(query)
-        candidates.extend(bm25_results)
+        # Retrieve candidates from both retrievers concurrently
+        dense_results, bm25_results = await asyncio.gather(
+            dense_retriever.ainvoke(query),
+            asyncio.to_thread(sparse_retriever.invoke, query),
+        )
+        candidates = dense_results + bm25_results
 
         if not candidates:
             return []

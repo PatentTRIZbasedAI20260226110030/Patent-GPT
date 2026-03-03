@@ -2,16 +2,26 @@ import logging
 from typing import Any
 
 import httpx
+import xmltodict
 
 from app.config import Settings
 
 logger = logging.getLogger(__name__)
 
-KIPRIS_BASE_URL = "http://plus.kipris.or.kr/openapi/rest/v1/published"
+KIPRIS_BASE_URL = (
+    "http://plus.kipris.or.kr/kipo-api/kipi/patUtiModInfoSearchSevice/getAdvancedSearch"
+)
 
 
 def parse_kipris_patents(data: dict[str, Any]) -> list[dict[str, str]]:
     try:
+        # Check API-level success flag
+        header = data.get("response", {}).get("header", {})
+        if header.get("successYN", "N") != "Y":
+            msg = header.get("resultMsg", "Unknown error")
+            logger.warning("KIPRISplus API returned error: %s", msg)
+            return []
+
         items = data["response"]["body"]["items"]["item"]
         if not items:
             return []
@@ -34,23 +44,28 @@ class KIPRISClient:
     def __init__(self, settings: Settings):
         self.api_key = settings.KIPRIS_API_KEY
         self.client = httpx.AsyncClient(timeout=30.0)
+        if not self.api_key:
+            logger.warning("KIPRIS_API_KEY is empty — external patent search will not work")
 
     async def search_patents(
         self, keyword: str, num_of_rows: int = 50, page_no: int = 1
     ) -> list[dict[str, str]]:
         params = {
             "word": keyword,
-            "numOfRows": num_of_rows,
-            "pageNo": page_no,
+            "numOfRows": str(num_of_rows),
+            "pageNo": str(page_no),
             "ServiceKey": self.api_key,
         }
         try:
             response = await self.client.get(KIPRIS_BASE_URL, params=params)
             response.raise_for_status()
-            data = response.json()
+            data = xmltodict.parse(response.text)
             return parse_kipris_patents(data)
         except httpx.HTTPError as e:
             logger.error(f"KIPRISplus API request failed: {e}")
+            return []
+        except (ValueError, KeyError) as e:
+            logger.error(f"Failed to parse KIPRISplus XML response: {e}")
             return []
 
     async def close(self):

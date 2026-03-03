@@ -3,9 +3,8 @@ import uuid
 from pathlib import Path
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 
-from app.config import Settings
+from app.config import Settings, get_llm
 from app.models.patent_draft import PatentDraft
 from app.utils.docx_exporter import export_to_docx
 
@@ -43,11 +42,7 @@ async def generate_draft(
     settings: Settings,
 ) -> tuple[PatentDraft, str | None]:
     """Generate a structured patent draft + DOCX using Gemini."""
-    llm = ChatGoogleGenerativeAI(
-        model=settings.GEMINI_MODEL,
-        google_api_key=settings.GOOGLE_API_KEY,
-        temperature=0.3,
-    ).with_structured_output(PatentDraft)
+    llm = get_llm(settings, temperature=0.3).with_structured_output(PatentDraft)
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", DRAFT_SYSTEM),

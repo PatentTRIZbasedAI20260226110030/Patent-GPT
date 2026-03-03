@@ -50,7 +50,7 @@ Patent-GPT follows a **Service Layer + LangGraph Core** architecture. FastAPI ro
 
 **Purpose:** Map a user's keyword or problem description to relevant TRIZ inventive principles.
 
-- **Model:** Gemini 3.0 Flash (via `langchain-google-genai`)
+- **Model:** Gemini 2.0 Flash (via `langchain-google-genai`)
 - **Method:** LLM-based routing with few-shot prompting
 - **Input:** Keyword + problem description + optional domain
 - **Output:** List of applicable TRIZ principles with inventive idea
@@ -115,7 +115,7 @@ Patent-GPT follows a **Service Layer + LangGraph Core** architecture. FastAPI ro
 
 **Purpose:** Produce a structured patent draft in KIPO (Korean IP Office) format.
 
-- **Model:** Gemini 3.0 Flash with Pydantic structured output
+- **Model:** Gemini 2.0 Flash with Pydantic structured output
 - **Format (KIPO standard):**
   - 발명의 명칭 (Title)
   - 요약 (Abstract)

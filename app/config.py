@@ -1,4 +1,11 @@
+from functools import lru_cache
+from typing import Literal
+
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import OpenAIEmbeddings
 from pydantic_settings import BaseSettings
+
+__version__ = "0.1.0"
 
 
 class Settings(BaseSettings):
@@ -8,7 +15,7 @@ class Settings(BaseSettings):
     KIPRIS_API_KEY: str = ""
 
     # Model settings
-    GEMINI_MODEL: str = "gemini-3-flash-preview"
+    GEMINI_MODEL: str = "gemini-2.0-flash"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # Search settings
@@ -18,7 +25,7 @@ class Settings(BaseSettings):
     RERANK_TOP_K: int = 5
 
     # TRIZ classifier routing
-    TRIZ_ROUTER: str = "llm"  # "llm" or "ml"
+    TRIZ_ROUTER: Literal["llm", "ml"] = "llm"
     ML_MODEL_PATH: str = "./data/models/triz_classifier.joblib"
 
     # Evaluation
@@ -34,5 +41,23 @@ class Settings(BaseSettings):
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 
+@lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def get_llm(settings: Settings, temperature: float = 0.7) -> ChatGoogleGenerativeAI:
+    """Centralized LLM factory. All Gemini calls go through here."""
+    return ChatGoogleGenerativeAI(
+        model=settings.GEMINI_MODEL,
+        google_api_key=settings.GOOGLE_API_KEY,
+        temperature=temperature,
+    )
+
+
+def get_embeddings(settings: Settings) -> OpenAIEmbeddings:
+    """Centralized embeddings factory."""
+    return OpenAIEmbeddings(
+        model=settings.EMBEDDING_MODEL,
+        api_key=settings.OPENAI_API_KEY,
+    )

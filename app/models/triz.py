@@ -1,4 +1,5 @@
 import json
+from functools import lru_cache
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -33,13 +34,15 @@ class ContradictionMatrix(BaseModel):
         return [f"{p.id}. {p.name_ko} ({p.name_en})" for p in self.parameters]
 
 
-def load_triz_principles() -> list[TRIZPrinciple]:
+@lru_cache(maxsize=1)
+def load_triz_principles() -> tuple[TRIZPrinciple, ...]:
     data_path = DATA_DIR / "triz_principles.json"
     with open(data_path, encoding="utf-8") as f:
         data = json.load(f)
-    return [TRIZPrinciple(**item) for item in data]
+    return tuple(TRIZPrinciple(**item) for item in data)
 
 
+@lru_cache(maxsize=1)
 def load_contradiction_matrix() -> ContradictionMatrix:
     data_path = DATA_DIR / "triz_contradiction_matrix.json"
     with open(data_path, encoding="utf-8") as f:

@@ -107,7 +107,7 @@ Keyword Input → Patent Idea Generation → Patent Value Assessment
 | Backend | FastAPI, Uvicorn |
 | Frontend | Next.js 16, React 18, Tailwind CSS, Shadcn UI |
 | LLM Orchestration | LangChain, LangGraph |
-| LLM | Gemini 3.0 Flash (via `langchain-google-genai`) |
+| LLM | Gemini 2.0 Flash (via `langchain-google-genai`) |
 | Embeddings | OpenAI text-embedding-3-small |
 | Vector DB | ChromaDB (local, in-process) |
 | Search | BM25 (rank-bm25) + Cross-Encoder (sentence-transformers) |
@@ -168,7 +168,7 @@ Each pipeline stage is a standalone, independently testable service.
 
 | Stage | Service | Description | Tech |
 | :--: | :-- | :-- | :-- |
-| 1 | **TRIZ Classifier** | Maps problem to TRIZ principles via contradiction matrix + LLM (or ML model) | Gemini 3.0 Flash / XGBoost |
+| 1 | **TRIZ Classifier** | Maps problem to TRIZ principles via contradiction matrix + LLM (or ML model) | Gemini 2.0 Flash / XGBoost |
 | 2 | **Prior Art Searcher** | Hybrid retrieval over KIPRISplus data + precision reranking | BM25 + ChromaDB + Cross-Encoder |
 | 3 | **Reasoning Agent** | Autonomous redesign when similarity exceeds threshold (evasion design) | LangGraph evasion loop |
 | 4 | **Draft Generator** | KIPO-format JSON + DOCX patent draft generation | Pydantic `with_structured_output` + python-docx |
@@ -256,7 +256,7 @@ cp .env.example .env
 GOOGLE_API_KEY=...                     # Gemini API key (required)
 OPENAI_API_KEY=...                     # OpenAI API key (optional, embeddings only)
 KIPRIS_API_KEY=...                     # KIPRISplus API key (optional)
-GEMINI_MODEL=gemini-3-flash-preview    # LLM model for all stages
+GEMINI_MODEL=gemini-2.0-flash            # LLM model for all stages
 EMBEDDING_MODEL=text-embedding-3-small
 SIMILARITY_THRESHOLD=0.5               # Evasion loop triggers above this
 MAX_EVASION_ATTEMPTS=3                 # Max redesign iterations
