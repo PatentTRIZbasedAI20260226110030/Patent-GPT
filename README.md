@@ -168,10 +168,50 @@ Each pipeline stage is a standalone, independently testable service.
 
 | Stage | Service | Description | Tech |
 | :--: | :-- | :-- | :-- |
-| 1 | **TRIZ Classifier** | Maps problem to TRIZ principles via few-shot LLM routing | Gemini 3.0 Flash, Few-Shot Prompting |
+| 1 | **TRIZ Classifier** | Maps problem to TRIZ principles via contradiction matrix + LLM (or ML model) | Gemini 3.0 Flash / XGBoost |
 | 2 | **Prior Art Searcher** | Hybrid retrieval over KIPRISplus data + precision reranking | BM25 + ChromaDB + Cross-Encoder |
 | 3 | **Reasoning Agent** | Autonomous redesign when similarity exceeds threshold (evasion design) | LangGraph evasion loop |
 | 4 | **Draft Generator** | KIPO-format JSON + DOCX patent draft generation | Pydantic `with_structured_output` + python-docx |
+
+### TRIZ Classification: Dual Router (LLM vs ML)
+
+Stage 1 supports two classification backends controlled by the `TRIZ_ROUTER` environment variable:
+
+**LLM path** (`TRIZ_ROUTER=llm`, default):
+1. LLM extracts improving/worsening engineering parameters from the problem text
+2. Look up Altshuller's 39×39 Contradiction Matrix → recommended TRIZ principles
+3. LLM selects top-3 principles guided by matrix recommendations
+
+**ML path** (`TRIZ_ROUTER=ml`):
+Uses a pre-trained TF-IDF + XGBoost model for offline, low-latency classification.
+
+```text
+Training Pipeline (scripts/train_triz_classifier.py):
+
+  JSONL data ──→ TF-IDF Vectorizer ──→ OneVsRestClassifier(XGBClassifier) ──→ joblib artifact
+  {"text", "labels"}   max_features=10000        n_estimators=200              vectorizer
+                        ngram_range=(1,2)         max_depth=6                   + model
+                        sublinear_tf=True         learning_rate=0.1             + label_names
+
+Inference (app/services/ml_classifier.py):
+
+  Problem text ──→ TF-IDF transform ──→ predict_proba() ──→ top-k principles
+                   (fitted vectorizer)   (40 binary models)   sorted by score
+```
+
+**Training:**
+```bash
+pip install -e ".[ml]"   # xgboost, scikit-learn, joblib
+python scripts/train_triz_classifier.py --data data/training/triz_labels.jsonl
+# Output: data/models/triz_classifier.joblib
+# Quality gate: F1 micro >= 0.75 required for production use
+```
+
+**Switching:**
+```env
+TRIZ_ROUTER=ml
+ML_MODEL_PATH=./data/models/triz_classifier.joblib
+```
 
 ---
 
@@ -224,6 +264,12 @@ RETRIEVAL_TOP_K=20                     # Candidates from hybrid search
 RERANK_TOP_K=5                         # Final results after reranking
 CHROMA_PERSIST_DIR=./data/chromadb
 ALLOWED_ORIGINS=["http://localhost:3000"]  # CORS allowed origins
+
+# v0.7.0 Intelligence features
+TRIZ_ROUTER=llm                            # "llm" (matrix-guided) or "ml" (XGBoost)
+ML_MODEL_PATH=./data/models/triz_classifier.joblib
+FAITHFULNESS_THRESHOLD=0.8                 # RAGAS evaluation pass threshold
+ENABLE_AUTO_EVALUATION=false               # Auto-run RAGAS after generation
 ```
 
 ### Ingest Patent Data
@@ -269,16 +315,21 @@ Patent-GPT/
 │   │       ├── request.py          # PatentGenerateRequest, PatentSearchRequest DTOs
 │   │       └── response.py         # PatentGenerateResponse, SimilarPatent DTOs
 │   ├── models/
+│   │   ├── evaluation.py           # RAGAS EvaluationResult model
 │   │   ├── patent_draft.py         # PatentDraft domain model (KIPO format)
+│   │   ├── session.py              # Conversation memory (SessionStore, SessionHistory)
 │   │   ├── state.py                # LangGraph AgentState
-│   │   └── triz.py                 # TRIZ principle model
+│   │   └── triz.py                 # TRIZ principle + ContradictionMatrix models
 │   ├── prompts/                    # Centralized LLM prompts
 │   ├── services/
 │   │   ├── draft_generator.py      # Stage 4: Pydantic structured output + DOCX
+│   │   ├── evaluation_service.py   # RAGAS evaluation (faithfulness, relevancy, recall)
+│   │   ├── memory_service.py       # Conversation memory service
+│   │   ├── ml_classifier.py        # ML-based TRIZ classifier (XGBoost + TF-IDF)
 │   │   ├── patent_searcher.py      # Stage 2: BM25 + ChromaDB + Cross-Encoder
 │   │   ├── patent_service.py       # Orchestrator: wires all stages
 │   │   ├── reasoning_agent.py      # Stage 3: LangGraph evasion loop
-│   │   └── triz_classifier.py      # Stage 1: LLM-based TRIZ routing
+│   │   └── triz_classifier.py      # Stage 1: LLM/ML dual-router TRIZ classification
 │   ├── utils/
 │   │   ├── docx_exporter.py        # PatentDraft → DOCX export
 │   │   └── kipris_client.py        # KIPRISplus async API client
@@ -308,9 +359,11 @@ Patent-GPT/
 │       ├── FIGMA_GUIDE.md          # Figma design system guide
 │       └── HANDOFF.md              # Context handoff document
 ├── data/
-│   └── triz_principles.json        # 40 TRIZ inventive principles
+│   ├── triz_principles.json        # 40 TRIZ inventive principles
+│   └── triz_contradiction_matrix.json  # 39×39 Altshuller contradiction matrix
 ├── scripts/
-│   └── ingest_patents.py           # KIPRISplus → ChromaDB batch ingestion
+│   ├── ingest_patents.py           # KIPRISplus → ChromaDB batch ingestion
+│   └── train_triz_classifier.py    # TF-IDF + XGBoost TRIZ training pipeline
 ├── tests/                          # Per-module unit tests
 ├── .env.example
 ├── pyproject.toml
@@ -434,7 +487,7 @@ Trigger patent ingestion from KIPRISplus into ChromaDB.
 | **v0.4.0 · Ship** | Route wiring, Ruff linting, full test suite, smoke test | ✅ Done |
 | **v0.5.0 · UI/UX** | Figma 9-screen wireframe, Next.js frontend scaffold, component library, API client | ✅ Done |
 | **v0.6.0 · Integration** | SSE streaming, CORS, error handling, E2E tests, documentation sync | ✅ Done |
-| **v0.7.0 · Intelligence** | RAGAS evaluation, TRIZ Contradiction Matrix, conversation memory | 📋 Planned |
+| **v0.7.0 · Intelligence** | RAGAS evaluation, TRIZ Contradiction Matrix, conversation memory, ML classifier | ✅ Done |
 
 ### UI/UX Design
 
@@ -449,13 +502,11 @@ Landing → Problem Input → Analysis Loading → TRIZ Results → Similar Pate
 
 ### MVP Scope Limitations
 
-The initial MVP prioritizes **idea discovery + evaluation** quality. The following features are planned for future versions:
+The following features are planned for future versions:
 
-- **RAGAS evaluation** — Faithfulness, Context Recall metrics
-- **TRIZ Contradiction Matrix** — Precise principle selection via parameter mapping
-- **Conversation memory** — Multi-turn stateful sessions
 - **Tool Calling** — TavilySearch / PythonREPL agent tools
 - **HWP export** — DOCX only for now
+- **Persistent session storage** — Currently in-memory (LRU + TTL), DB-backed planned
 
 ---
 

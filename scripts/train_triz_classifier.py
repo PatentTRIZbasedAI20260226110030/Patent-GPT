@@ -71,22 +71,44 @@ def train(data_path: Path, output_path: Path) -> None:
 
     model = OneVsRestClassifier(
         XGBClassifier(
-            n_estimators=200,
-            max_depth=6,
+            n_estimators=400,
+            max_depth=10,
             learning_rate=0.1,
-            use_label_encoder=False,
             eval_metric="logloss",
+            scale_pos_weight=5,
+            min_child_weight=2,
+            subsample=0.8,
+            colsample_bytree=0.8,
         )
     )
     logger.info("Training XGBoost classifier...")
     model.fit(X_train_tfidf, y_train)
 
+    # --- Hard-threshold evaluation (standard) ---
     y_pred = model.predict(X_test_tfidf)
     f1_micro = f1_score(y_test, y_pred, average="micro")
     f1_macro = f1_score(y_test, y_pred, average="macro")
 
     logger.info("F1 micro: %.4f, F1 macro: %.4f", f1_micro, f1_macro)
     logger.info("\n%s", classification_report(y_test, y_pred, zero_division=0))
+
+    # --- Top-k evaluation (matches production inference) ---
+    # In production, MLTrizClassifier.predict() uses predict_proba + top-k.
+    # Evaluate with the same approach to get a realistic accuracy metric.
+    y_proba = model.predict_proba(X_test_tfidf)
+    top_k = 5
+    topk_hits = 0
+    topk_total = 0
+    for i in range(len(y_proba)):
+        true_labels = set(np.where(y_test[i] == 1)[0])
+        pred_top = set(np.argsort(y_proba[i])[-top_k:])
+        topk_hits += len(true_labels & pred_top)
+        topk_total += len(true_labels)
+    topk_recall = topk_hits / topk_total if topk_total else 0
+    logger.info(
+        "Top-%d recall (production-style): %.4f (%d/%d)",
+        top_k, topk_recall, topk_hits, topk_total,
+    )
 
     if f1_micro < 0.75:
         logger.warning(

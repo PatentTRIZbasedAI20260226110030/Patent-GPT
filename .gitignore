@@ -80,6 +80,7 @@ htmlcov/
 
 # ── Data / ML Artifacts (large binary files) ───────────────
 data/chromadb/
+data/models/
 *.docx
 *.bin
 *.pt
@@ -90,6 +91,10 @@ data/chromadb/
 *.arrow
 *.safetensors
 *.model
+*.joblib
+
+# ── Raw Reference Materials (large PDFs/zips) ──────────────
+TRIZ classificaion database (raw)/
 
 # ── Database ───────────────────────────────────────────────
 *.db
