@@ -169,7 +169,7 @@
 
 ---
 
-## 7. 빠른 시작
+## 7-1. 빠른 시작
 
 ### 사전 준비
 
@@ -210,6 +210,115 @@ cd frontend && npm run dev
 pytest                         # 88개 테스트
 cd frontend && npm run build   # 프로덕션 빌드 확인
 ```
+
+## 7-2. Windows 초보자용 설치 (npm 설치부터, PowerShell 기준)
+
+> 아래는 **Windows 11 + PowerShell** 기준입니다.
+
+1. **Node.js 설치 (npm 포함)**
+   - [Node.js 공식 사이트](https://nodejs.org)에서 **LTS 버전(권장: Node 20+)** 설치
+   - 설치 후 PowerShell에서 확인:
+
+```powershell
+node -v
+npm -v
+```
+
+2. **Git 설치**
+   - [Git for Windows](https://git-scm.com/download/win) 설치
+   - 확인:
+
+```powershell
+git --version
+```
+
+3. **Python 설치**
+   - [Python for Windows](https://www.python.org/downloads/windows/)에서 Python 3.11 설치
+   - 설치 시 **Add Python to PATH** 체크
+   - 확인:
+
+```powershell
+py --version
+pip --version
+```
+
+4. **프로젝트 다운로드**
+
+```powershell
+cd $HOME
+git clone https://github.com/PatentTRIZbasedAI20260226110030/Patent-GPT.git
+cd Patent-GPT
+```
+
+5. **백엔드 가상환경 생성/활성화**
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+실행 정책 오류가 나면 1회 실행:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+다시 활성화:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+6. **백엔드 의존성 설치**
+
+```powershell
+pip install -e ".[dev]"
+```
+
+7. **백엔드 환경 변수 설정**
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+`.env`에서 `OPENAI_API_KEY=...` 값을 입력하고 저장하세요.
+
+8. **프론트 환경 변수 설정**
+
+```powershell
+cd frontend
+Copy-Item .env.example .env.local
+notepad .env.local
+```
+
+기본값(`NEXT_PUBLIC_API_URL=http://localhost:8000`)을 그대로 사용해도 됩니다.
+
+9. **프론트 의존성 설치**
+
+```powershell
+npm install
+```
+
+10. **실행 (터미널 2개)**
+
+터미널 A (프로젝트 루트):
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload
+```
+
+터미널 B (`frontend` 폴더):
+
+```powershell
+cd frontend
+npm run dev
+```
+
+11. **접속 확인**
+   - 프론트엔드: `http://localhost:3000`
+   - 백엔드 헬스체크: `http://localhost:8000/api/v1/health`
 
 ---
 
