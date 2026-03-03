@@ -2,157 +2,100 @@
 
 ## Overview
 
-Patent-GPT follows a **Service Layer + LangGraph Core** architecture. FastAPI routes delegate to a service layer, where each pipeline stage is a standalone, independently testable service. LangGraph is used only for the evasion loop (Stage 3) where stateful iteration is needed.
+Patent-GPT uses an **All-in-LangGraph** architecture with 8 nodes and 3 conditional edges. The entire patent generation pipeline is modeled as a single LangGraph state machine. FastAPI routes trigger the pipeline via `PatentPipeline` (`app/services/reasoning_agent.py`).
 
 ## System Diagram
 
-```
-┌───────────────────────────────────────────────────┐
-│                  FastAPI Server                    │
-├───────────────────────────────────────────────────┤
-│  POST /api/v1/patent/generate                     │
-│                    │                              │
-│                    ▼                              │
-│  ┌────────────────────────────────────────────┐   │
-│  │         PatentService (Orchestrator)        │   │
-│  │                                            │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐ │   │
-│  │  │ Stage 1  │→ │ Stage 2  │→ │ Stage 3  │ │   │
-│  │  │   TRIZ   │  │  Patent  │  │ Reasoning│ │   │
-│  │  │Classifier│  │ Searcher │  │  Agent   │ │   │
-│  │  └──────────┘  └──────────┘  └────┬─────┘ │   │
-│  │                                   │        │   │
-│  │                   ┌───────────────┘        │   │
-│  │                   ▼                        │   │
-│  │  similarity>80%? ─YES─→ Evasion Loop       │   │
-│  │       │                   (max 3x)        │   │
-│  │       NO                    │              │   │
-│  │       │         ◄───────────┘              │   │
-│  │       ▼                                    │   │
-│  │  ┌──────────┐                              │   │
-│  │  │ Stage 4  │ → JSON + DOCX               │   │
-│  │  │  Draft   │                              │   │
-│  │  │Generator │                              │   │
-│  │  └──────────┘                              │   │
-│  └────────────────────────────────────────────┘   │
-└───────────────────────────────────────────────────┘
-        │                    │
-        ▼                    ▼
-  ┌──────────┐        ┌───────────┐
-  │ ChromaDB │        │ KIPRISplus│
-  │(Vector DB)│       │  Open API │
-  └──────────┘        └───────────┘
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                       FastAPI Server                          │
+├──────────────────────────────────────────────────────────────┤
+│  POST /api/v1/patent/generate                                │
+│  POST /api/v1/patent/generate/stream (SSE)                   │
+│                         │                                    │
+│                         ▼                                    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │            PatentPipeline (LangGraph)                  │    │
+│  │                                                       │    │
+│  │  classify_triz → search_internal → evaluate_context   │    │
+│  │                       ▲                    │          │    │
+│  │                       │         sufficient / insufficient │
+│  │                       │           │           │        │    │
+│  │                       │     generate_idea  search_kipris │  │
+│  │                       │           │           │        │    │
+│  │                       │           ◄───────────┘        │    │
+│  │                       │           │                    │    │
+│  │                       │     evaluate_novelty           │    │
+│  │                       │           │                    │    │
+│  │                       │     novel / not_novel          │    │
+│  │                       │       │         │              │    │
+│  │                       │  draft_patent   evade          │    │
+│  │                       └─────────────────┘              │    │
+│  └──────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
+         │                    │
+         ▼                    ▼
+   ┌──────────┐        ┌───────────┐
+   │ ChromaDB │        │ KIPRISplus│
+   │(Vector DB)│       │  Open API │
+   └──────────┘        └───────────┘
 ```
 
-## 4-Stage Pipeline
+## 8-Node Pipeline
 
-### Stage 1: TRIZ Classifier
+| Node | Purpose |
+| :-- | :-- |
+| `classify_triz` | Maps problem to top-3 TRIZ principles (contradiction matrix + LLM or ML) |
+| `search_internal` | Hybrid search ChromaDB (BM25 + dense + CrossEncoder rerank) |
+| `evaluate_context` | CRAG: LLM judges if retrieved context is sufficient |
+| `search_kipris` | Fallback: KIPRISplus API call when internal context is insufficient |
+| `generate_idea` | Generate invention idea using TRIZ principles + prior art |
+| `evaluate_novelty` | Evaluate patentability/novelty vs prior art |
+| `evade` | Redesign idea to differentiate from prior art (loop back) |
+| `draft_patent` | Structured output → PatentDraft (KIPO format) + DOCX |
 
-**Purpose:** Map a user's keyword or problem description to relevant TRIZ inventive principles.
+## 3 Conditional Edges
 
-- **Model:** Gemini 2.0 Flash (via `langchain-google-genai`)
-- **Method:** LLM-based routing with few-shot prompting
-- **Input:** Keyword + problem description + optional domain
-- **Output:** List of applicable TRIZ principles with inventive idea
-- **Data:** `data/triz_principles.json` (40 principles with Korean descriptions)
+1. **After `evaluate_context`:** Sufficient → `generate_idea`. Insufficient → `search_kipris` → `generate_idea`.
+2. **After `evaluate_novelty`:** Novel → `draft_patent`. Not novel → `evade`.
+3. **After `evade`:** Max attempts reached → `draft_patent`. Otherwise → loop.
 
-### Stage 2: Patent Searcher (Hybrid Search)
+## CRAG Pattern (Corrective RAG)
 
-**Purpose:** Find existing patents similar to the generated idea to evaluate novelty.
+The `evaluate_context` node implements the **CRAG** pattern:
+1. After internal ChromaDB search, an LLM evaluates whether retrieved documents are sufficient
+2. If **sufficient** — proceed directly to idea generation
+3. If **insufficient** — fall back to KIPRISplus API for additional prior art
 
-**Retrieval strategy — three layers:**
+## TRIZ Classifier: Dual Router
 
-1. **BM25 (Sparse):** Keyword-based retrieval using `rank-bm25`. Catches exact terminology matches that vector search may miss (e.g., specific patent terms like "열방출 구조체").
+Stage 1 supports two classification backends via `TRIZ_ROUTER`:
 
-2. **Vector Search (Dense):** Semantic similarity via ChromaDB with `text-embedding-3-small` embeddings. Catches conceptually similar patents even when wording differs.
+- **LLM path** (default): LLM extracts engineering parameters → Contradiction Matrix lookup → LLM selects top-3 principles
+- **ML path**: Pre-trained TF-IDF + XGBoost model for offline, low-latency classification
 
-3. **Cross-Encoder Reranking:** `sentence-transformers` Cross-Encoder rescores the merged candidate list. Produces a final ranked list with calibrated similarity scores.
+## Hybrid Search
 
-**Parameters:**
-- `RETRIEVAL_TOP_K=20` — candidates from each retriever
-- `RERANK_TOP_K=5` — final results after reranking
+Three-layer retrieval strategy (BM25 + dense run in parallel via `asyncio.gather`):
 
-### Stage 3: Reasoning Agent (LangGraph Evasion Loop)
+1. **BM25 (Sparse)** — Keyword-based, catches exact terminology
+2. **Vector Search (Dense)** — Semantic similarity via ChromaDB + `text-embedding-3-small`
+3. **Cross-Encoder Reranking** — Rescores merged candidates for calibrated similarity
 
-**Purpose:** If the top patent similarity exceeds the threshold, autonomously redesign the idea to improve novelty.
+Parameters: `RETRIEVAL_TOP_K=20` (candidates), `RERANK_TOP_K=5` (final results)
 
-**LangGraph state machine:**
+## Key Design Decisions
 
-```
-┌─────────────┐
-│  Evaluate    │ ← receives idea + similar patents
-│  Similarity  │
-└──────┬──────┘
-       │
-       ▼
-  similarity > 50%?
-    │         │
-   YES        NO
-    │         │
-    ▼         ▼
-┌────────┐  ┌────────┐
-│ Evade  │  │  Pass  │ → proceed to Stage 4
-│ Design │  └────────┘
-└───┬────┘
-    │ (redesigned idea)
-    │
-    ▼
-  attempts < 3?
-    │       │
-   YES      NO
-    │       │
-    ▼       ▼
-  (loop)  ┌────────┐
-          │  Pass  │ → proceed with best attempt
-          └────────┘
-```
-
-- **Threshold:** `SIMILARITY_THRESHOLD=0.5`
-- **Max iterations:** `MAX_EVASION_ATTEMPTS=3`
-- **State:** Managed via `AgentState` TypedDict
-
-### Stage 4: Draft Generator
-
-**Purpose:** Produce a structured patent draft in KIPO (Korean IP Office) format.
-
-- **Model:** Gemini 2.0 Flash with Pydantic structured output
-- **Format (KIPO standard):**
-  - 발명의 명칭 (Title)
-  - 요약 (Abstract)
-  - 청구항 (Claims)
-  - 배경기술 (Background)
-  - 해결과제 (Problem to Solve)
-  - 해결수단 (Solution)
-  - 발명의 효과 (Effects)
-- **Export:** JSON response + DOCX file via `python-docx`
-
-## Data Flow
-
-```
-User Input (keyword, problem, domain)
-  │
-  ▼
-TRIZClassifier.classify()
-  → TRIZ principles + inventive idea
-  │
-  ▼
-PatentSearcher.search()
-  → similar patents with scores
-  │
-  ▼
-ReasoningAgent.evaluate()
-  → possibly redesigned idea + novelty confirmation
-  │
-  ▼
-DraftGenerator.generate()
-  → PatentDraft (JSON) + DOCX file
-```
+- **Singleton services** — Avoid per-request CrossEncoder model loading
+- **Centralized LLM factory** — `get_llm()` / `get_embeddings()` in `app/config.py`
+- **Parallel retrieval** — BM25 + dense via `asyncio.gather` + `asyncio.to_thread`
+- **Caching** — `@lru_cache` on settings, TRIZ data, BM25 index
+- **Security** — Path traversal protection on `draft_id`
 
 ## External Dependencies
 
 | Service | Purpose | Auth |
 | :-- | :-- | :-- |
-| Google Generative AI | LLM generation (all stages) | `GOOGLE_API_KEY` |
-| OpenAI API | Embeddings only (`text-embedding-3-small`) | `OPENAI_API_KEY` |
-| KIPRISplus API | Korean patent data | `KIPRIS_API_KEY` |
+| OpenAI API | LLM reasoning + embeddings | `OPENAI_API_KEY` (required) |
+| KIPRISplus API | Korean patent data (fallback) | `KIPRIS_API_KEY` (optional) |
 | ChromaDB | Local vector storage | No auth (local) |

@@ -4,11 +4,11 @@
 
 **TRIZ** (Teoriya Resheniya Izobretatelskikh Zadach / 발명 문제 해결 이론) is a systematic methodology for inventive problem-solving developed by Genrich Altshuller. By analyzing over 200,000 patents, Altshuller identified 40 recurring inventive principles that appear across all domains of engineering and technology.
 
-The key insight: **inventive solutions are not random** — they follow repeatable patterns. A heat dissipation technique from aerospace may solve a packaging problem in consumer electronics, because both rely on the same underlying principle.
+The key insight: **inventive solutions are not random** — they follow repeatable patterns.
 
 ## The 40 Inventive Principles
 
-Patent-GPT uses all 40 TRIZ principles stored in `data/triz_principles.json`. Below are the principles organized by category:
+Patent-GPT uses all 40 TRIZ principles stored in `data/triz_principles.json`:
 
 ### Structural / Geometric
 
@@ -72,45 +72,40 @@ Patent-GPT uses all 40 TRIZ principles stored in `data/triz_principles.json`. Be
 
 ## How Patent-GPT Uses TRIZ
 
-### Few-Shot Persona Classification
+### Dual Router: Contradiction Matrix + LLM (or ML)
 
-The TRIZ Classifier (Stage 1) uses **LLM-based routing with few-shot prompting** to map user problems to relevant principles. The approach:
+Patent-GPT supports two classification paths via `TRIZ_ROUTER`:
 
-1. **System prompt** establishes the LLM as a TRIZ expert persona who deeply understands each principle
-2. **Few-shot examples** demonstrate correct classification for diverse problem domains:
-   ```
-   Problem: "Smartphone gets too hot during gaming"
-   → Principles: #1 Segmentation (separate heat source from user contact),
-                  #7 Nested doll (internal heat sink layers),
-                  #35 Parameter changes (phase-change cooling material)
-   ```
-3. **User input** is classified against the 40 principles
-4. **Output** includes: selected principles, reasoning for each, and a synthesized inventive idea
+**LLM path** (default):
+1. LLM extracts **improving/worsening engineering parameters** from the problem
+2. Look up Altshuller's **39×39 Contradiction Matrix** → recommended principles
+3. LLM selects **top-3 principles** guided by matrix + few-shot prompting
 
-### Why LLM-Based (Not Rule-Based)?
+**ML path**:
+- TF-IDF + XGBoost model trained on labeled TRIZ problem data
+- Low-latency, deterministic classification without API calls
 
-Traditional TRIZ software uses the **Contradiction Matrix** — a lookup table mapping technical contradictions to suggested principles. Patent-GPT uses LLM classification instead because:
+### The Contradiction Matrix
 
-| Aspect | Contradiction Matrix | LLM Classification |
+The 39×39 matrix maps pairs of engineering parameters (improving vs. worsening) to suggested principles:
+
+| Aspect | Matrix Only | Patent-GPT (Matrix + LLM) |
 | :-- | :-- | :-- |
-| Input format | Must identify improving/worsening parameters | Natural language (keyword or description) |
-| Domain coverage | 39 engineering parameters | Any domain |
-| Combinations | Pre-defined mappings | Flexible, context-aware |
-| Explanation | None (just principle numbers) | Natural language reasoning |
-| Maintenance | Fixed table | Updatable via prompt tuning |
+| Input | Must identify exact parameter pair | Natural language description |
+| Parameter extraction | Manual | LLM-automated |
+| Principle selection | Fixed lookup | Matrix-guided + LLM reasoning |
+| Explanation | Principle numbers only | Natural language reasoning |
 
-The tradeoff is determinism — the matrix always gives the same answer for the same contradiction, while LLM outputs may vary. Patent-GPT mitigates this with structured output (Pydantic) and temperature control.
-
-### Classification → Search → Evasion Flow
+### Example Flow
 
 ```
 User: "배터리 충전이 너무 오래 걸린다" (Battery charging takes too long)
          │
          ▼
-   TRIZ Classifier
-   → Principle #21 (고속 처리 / Skipping)
-   → Principle #28 (기계 시스템 대체 / Replace mechanical)
-   → Principle #35 (매개변수 변경 / Parameter changes)
+   TRIZ Classifier (matrix + LLM)
+   → Improving: Speed, Worsening: Energy loss
+   → Matrix recommends: #21, #28, #35
+   → LLM selects top-3 with reasoning
    → Idea: "무선 충전 중 열에너지를 재활용하여 충전 속도를 높이는 시스템"
          │
          ▼
@@ -119,14 +114,12 @@ User: "배터리 충전이 너무 오래 걸린다" (Battery charging takes too 
          │
          ▼
    Reasoning Agent
-   → Score 0.85 > threshold 0.80 → trigger evasion
-   → Redesign: differentiate by adding Principle #22 (전화위복)
-   → "충전 시 발생하는 열을 배터리 예열에 활용하여 저온 환경에서도
-      급속 충전이 가능한 이중 활용 시스템"
-   → Re-search: top score now 0.68 → pass
+   → Score 0.85 > threshold 0.50 → trigger evasion
+   → Redesign with Principle #22 (전화위복)
+   → Re-search: top score now 0.42 → pass
          │
          ▼
-   Draft Generator → KIPO format patent draft
+   Draft Generator → KIPO format patent draft + DOCX
 ```
 
 ## References
