@@ -9,8 +9,8 @@ from __future__ import annotations
 import argparse
 import json
 import time
-import urllib.parse
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -164,7 +164,8 @@ def main() -> None:
 
             if total % 200 == 0:
                 print(
-                    f"[INFO] processed={total} success={success} failed={failed} output={output_path}"
+                    f"[INFO] processed={total} success={success} failed={failed} "
+                    f"output={output_path}"
                 )
 
     print(f"[DONE] processed={total} success={success} failed={failed} output={output_path}")
