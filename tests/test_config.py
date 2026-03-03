@@ -3,9 +3,9 @@ def test_settings_loads_defaults():
     from app.config import Settings
 
     settings = Settings(
-        GOOGLE_API_KEY="test-google-key",
+        OPENAI_API_KEY="test-openai-key",
     )
-    assert settings.GEMINI_MODEL == "gemini-2.0-flash"
+    assert settings.LLM_MODEL == "gpt-4o-mini"
     assert settings.EMBEDDING_MODEL == "text-embedding-3-small"
     assert settings.SIMILARITY_THRESHOLD == 0.5
     assert settings.MAX_EVASION_ATTEMPTS == 3
@@ -13,8 +13,8 @@ def test_settings_loads_defaults():
     assert settings.RERANK_TOP_K == 5
 
 
-def test_settings_requires_google_api_key(monkeypatch):
-    """Settings should fail without required GOOGLE_API_KEY."""
+def test_settings_requires_openai_api_key(monkeypatch):
+    """Settings should fail without required OPENAI_API_KEY."""
     import pytest
     from pydantic import ValidationError
 

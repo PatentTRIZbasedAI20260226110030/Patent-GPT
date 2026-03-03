@@ -1,8 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from pydantic_settings import BaseSettings
 
 __version__ = "0.1.0"
@@ -10,12 +9,12 @@ __version__ = "0.1.0"
 
 class Settings(BaseSettings):
     # API Keys
-    GOOGLE_API_KEY: str  # required, for Gemini LLM
-    OPENAI_API_KEY: str = ""  # optional, for embeddings only
+    GOOGLE_API_KEY: str = ""  # optional, kept for backwards compat
+    OPENAI_API_KEY: str  # required, for LLM + embeddings
     KIPRIS_API_KEY: str = ""
 
     # Model settings
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    LLM_MODEL: str = "gpt-4o-mini"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # Search settings
@@ -46,11 +45,11 @@ def get_settings() -> Settings:
     return Settings()
 
 
-def get_llm(settings: Settings, temperature: float = 0.7) -> ChatGoogleGenerativeAI:
-    """Centralized LLM factory. All Gemini calls go through here."""
-    return ChatGoogleGenerativeAI(
-        model=settings.GEMINI_MODEL,
-        google_api_key=settings.GOOGLE_API_KEY,
+def get_llm(settings: Settings, temperature: float = 0.7) -> ChatOpenAI:
+    """Centralized LLM factory. All LLM calls go through here."""
+    return ChatOpenAI(
+        model=settings.LLM_MODEL,
+        api_key=settings.OPENAI_API_KEY,
         temperature=temperature,
     )
 

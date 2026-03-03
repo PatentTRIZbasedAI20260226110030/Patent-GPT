@@ -94,6 +94,7 @@ data/models/
 *.joblib
 
 # ── Raw Reference Materials (large PDFs/zips) ──────────────
+*.zip
 TRIZ classificaion database (raw)/
 
 # ── Database ───────────────────────────────────────────────

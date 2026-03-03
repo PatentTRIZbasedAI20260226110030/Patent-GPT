@@ -107,7 +107,7 @@ Keyword Input → Patent Idea Generation → Patent Value Assessment
 | Backend | FastAPI, Uvicorn |
 | Frontend | Next.js 16, React 18, Tailwind CSS, Shadcn UI |
 | LLM Orchestration | LangChain, LangGraph |
-| LLM | Gemini 2.0 Flash (via `langchain-google-genai`) |
+| LLM | OpenAI GPT-4o-mini (via `langchain-openai`) |
 | Embeddings | OpenAI text-embedding-3-small |
 | Vector DB | ChromaDB (local, in-process) |
 | Search | BM25 (rank-bm25) + Cross-Encoder (sentence-transformers) |
@@ -168,7 +168,7 @@ Each pipeline stage is a standalone, independently testable service.
 
 | Stage | Service | Description | Tech |
 | :--: | :-- | :-- | :-- |
-| 1 | **TRIZ Classifier** | Maps problem to TRIZ principles via contradiction matrix + LLM (or ML model) | Gemini 2.0 Flash / XGBoost |
+| 1 | **TRIZ Classifier** | Maps problem to TRIZ principles via contradiction matrix + LLM (or ML model) | GPT-4o-mini / XGBoost |
 | 2 | **Prior Art Searcher** | Hybrid retrieval over KIPRISplus data + precision reranking | BM25 + ChromaDB + Cross-Encoder |
 | 3 | **Reasoning Agent** | Autonomous redesign when similarity exceeds threshold (evasion design) | LangGraph evasion loop |
 | 4 | **Draft Generator** | KIPO-format JSON + DOCX patent draft generation | Pydantic `with_structured_output` + python-docx |
@@ -231,8 +231,7 @@ ML_MODEL_PATH=./data/models/triz_classifier.joblib
 ### Prerequisites
 
 - Python 3.11+
-- Google API key (Gemini)
-- OpenAI API key (optional, for embeddings)
+- OpenAI API key (required — for LLM reasoning + embeddings)
 - KIPRISplus API key (optional, issued via [Korea Public Data Portal](https://www.data.go.kr/))
 
 ### Installation
@@ -253,11 +252,18 @@ cp .env.example .env
 ### Environment Variables
 
 ```env
-GOOGLE_API_KEY=...                     # Gemini API key (required)
-OPENAI_API_KEY=...                     # OpenAI API key (optional, embeddings only)
-KIPRIS_API_KEY=...                     # KIPRISplus API key (optional)
-GEMINI_MODEL=gemini-2.0-flash            # LLM model for all stages
+# Required
+OPENAI_API_KEY=sk-...                  # OpenAI API key (LLM reasoning + embeddings)
+
+# Optional
+GOOGLE_API_KEY=...                     # Google Gemini key (kept for backwards compat)
+KIPRIS_API_KEY=...                     # KIPRISplus API key (external patent search)
+
+# Model settings
+LLM_MODEL=gpt-4o-mini                 # LLM model for all pipeline stages
 EMBEDDING_MODEL=text-embedding-3-small
+
+# Search tuning
 SIMILARITY_THRESHOLD=0.5               # Evasion loop triggers above this
 MAX_EVASION_ATTEMPTS=3                 # Max redesign iterations
 RETRIEVAL_TOP_K=20                     # Candidates from hybrid search
@@ -265,7 +271,7 @@ RERANK_TOP_K=5                         # Final results after reranking
 CHROMA_PERSIST_DIR=./data/chromadb
 ALLOWED_ORIGINS=["http://localhost:3000"]  # CORS allowed origins
 
-# v0.7.0 Intelligence features
+# Intelligence features
 TRIZ_ROUTER=llm                            # "llm" (matrix-guided) or "ml" (XGBoost)
 ML_MODEL_PATH=./data/models/triz_classifier.joblib
 FAITHFULNESS_THRESHOLD=0.8                 # RAGAS evaluation pass threshold
@@ -363,6 +369,7 @@ Patent-GPT/
 │   └── triz_contradiction_matrix.json  # 39×39 Altshuller contradiction matrix
 ├── scripts/
 │   ├── ingest_patents.py           # KIPRISplus → ChromaDB batch ingestion
+│   ├── ingest_sample.py            # LLM-generated sample data → ChromaDB
 │   └── train_triz_classifier.py    # TF-IDF + XGBoost TRIZ training pipeline
 ├── tests/                          # Per-module unit tests
 ├── .env.example
@@ -488,6 +495,7 @@ Trigger patent ingestion from KIPRISplus into ChromaDB.
 | **v0.5.0 · UI/UX** | Figma 9-screen wireframe, Next.js frontend scaffold, component library, API client | ✅ Done |
 | **v0.6.0 · Integration** | SSE streaming, CORS, error handling, E2E tests, documentation sync | ✅ Done |
 | **v0.7.0 · Intelligence** | RAGAS evaluation, TRIZ Contradiction Matrix, conversation memory, ML classifier | ✅ Done |
+| **v0.8.0 · Simplification** | LLM provider unification (→ OpenAI GPT-4o-mini), centralized factories, singleton services, caching, parallel retrieval, security hardening | ✅ Done |
 
 ### UI/UX Design
 
