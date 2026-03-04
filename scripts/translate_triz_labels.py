@@ -7,7 +7,10 @@ Default backend uses Google Translate's unofficial public endpoint
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
+import os
+import socket
 import time
 import urllib.error
 import urllib.parse
@@ -15,7 +18,19 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-TRANSLATION_ERRORS = (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError)
+TRANSLATION_ERRORS = (
+    urllib.error.URLError,
+    TimeoutError,
+    ConnectionError,
+    ConnectionResetError,
+    ConnectionAbortedError,
+    BrokenPipeError,
+    socket.timeout,
+    http.client.RemoteDisconnected,
+    OSError,
+    json.JSONDecodeError,
+    ValueError,
+)
 
 
 def translate_via_google_public(text: str, target_lang: str = "ko", timeout: float = 20.0) -> str:
@@ -89,6 +104,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Overwrite output file if it already exists",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from existing .tmp file created by a previous interrupted run",
+    )
     return parser.parse_args()
 
 
@@ -111,22 +131,49 @@ def main() -> None:
 
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
-    if output_path.exists() and not args.overwrite:
+    if output_path.exists() and not args.overwrite and not args.resume:
         raise FileExistsError(
             f"Output already exists: {output_path}. "
             "Use --overwrite or set a different --output path."
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_output_path = output_path.with_suffix(f"{output_path.suffix}.tmp")
+
+    resume_from_line = 0
+    write_mode = "w"
+
+    if args.resume:
+        if not tmp_output_path.exists():
+            raise FileNotFoundError(
+                f"Resume requested but tmp file does not exist: {tmp_output_path}"
+            )
+        with tmp_output_path.open("r", encoding="utf-8") as tmpf:
+            resume_from_line = sum(1 for _ in tmpf)
+        write_mode = "a"
+        print(f"[INFO] resume enabled: starting from line {resume_from_line + 1}")
+    elif tmp_output_path.exists():
+        if args.overwrite:
+            tmp_output_path.unlink()
+        else:
+            raise FileExistsError(
+                f"Temporary output already exists: {tmp_output_path}. "
+                "Use --overwrite to replace it or --resume to continue."
+            )
 
     total = 0
     success = 0
     failed = 0
 
-    with input_path.open("r", encoding="utf-8") as rf, output_path.open(
-        "w", encoding="utf-8"
+    with input_path.open("r", encoding="utf-8") as rf, tmp_output_path.open(
+        write_mode, encoding="utf-8"
     ) as wf:
+        skipped = 0
         for line in rf:
+            if skipped < resume_from_line:
+                skipped += 1
+                continue
+
             if args.limit and total >= args.limit:
                 break
 
@@ -163,12 +210,19 @@ def main() -> None:
                 time.sleep(args.sleep_seconds)
 
             if total % 200 == 0:
+                processed_global = resume_from_line + total
                 print(
-                    f"[INFO] processed={total} success={success} failed={failed} "
+                    f"[INFO] processed={processed_global} success={success} failed={failed} "
                     f"output={output_path}"
                 )
 
-    print(f"[DONE] processed={total} success={success} failed={failed} output={output_path}")
+    # Atomic replace prevents partial/corrupted final output on interruption.
+    os.replace(tmp_output_path, output_path)
+    processed_global = resume_from_line + total
+    print(
+        f"[DONE] processed={processed_global} success={success} failed={failed} "
+        f"output={output_path}"
+    )
 
 
 if __name__ == "__main__":
